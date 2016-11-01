@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VSLauncher", "VSLauncher\VS
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MarchingCubesLUT", "MarchingCubesLUT\MarchingCubesLUT.vcxproj", "{8E1D799D-D3FA-41C9-9169-5EE1CBB3A717}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PrintfTest", "PrintfTest\PrintfTest.vcxproj", "{E5235900-2947-4408-AE2F-F62BAF78E583}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -45,6 +47,12 @@ Global
 		{8E1D799D-D3FA-41C9-9169-5EE1CBB3A717}.Release|Win32.ActiveCfg = Release|Win32
 		{8E1D799D-D3FA-41C9-9169-5EE1CBB3A717}.Release|Win32.Build.0 = Release|Win32
 		{8E1D799D-D3FA-41C9-9169-5EE1CBB3A717}.Release|x64.ActiveCfg = Release|Win32
+		{E5235900-2947-4408-AE2F-F62BAF78E583}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E5235900-2947-4408-AE2F-F62BAF78E583}.Debug|Win32.Build.0 = Debug|Win32
+		{E5235900-2947-4408-AE2F-F62BAF78E583}.Debug|x64.ActiveCfg = Debug|Win32
+		{E5235900-2947-4408-AE2F-F62BAF78E583}.Release|Win32.ActiveCfg = Release|Win32
+		{E5235900-2947-4408-AE2F-F62BAF78E583}.Release|Win32.Build.0 = Release|Win32
+		{E5235900-2947-4408-AE2F-F62BAF78E583}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
