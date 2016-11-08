@@ -8,3 +8,6 @@
 *.opensdf
 *.sdf
 *.suo
+*.lastbuildstate
+*.manifest
+*.tlh
