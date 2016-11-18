@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenGLDriverSelect", "OpenG
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "D3DReflect", "D3DReflect\D3DReflect.vcxproj", "{7C238007-9306-4EE1-A7B2-79069C8E4411}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BitonicSort", "BitonicSort\BitonicSort.vcxproj", "{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -44,10 +46,8 @@ Global
 		{F43BD071-01C1-427D-94ED-CFCDB3370BE9}.Release|Win32.Build.0 = Release|Win32
 		{F43BD071-01C1-427D-94ED-CFCDB3370BE9}.Release|x64.ActiveCfg = Release|Win32
 		{072DDE95-0E39-413D-95EB-6B2B9EDBF043}.Debug|Win32.ActiveCfg = Debug|Win32
-		{072DDE95-0E39-413D-95EB-6B2B9EDBF043}.Debug|Win32.Build.0 = Debug|Win32
 		{072DDE95-0E39-413D-95EB-6B2B9EDBF043}.Debug|x64.ActiveCfg = Debug|Win32
 		{072DDE95-0E39-413D-95EB-6B2B9EDBF043}.Release|Win32.ActiveCfg = Release|Win32
-		{072DDE95-0E39-413D-95EB-6B2B9EDBF043}.Release|Win32.Build.0 = Release|Win32
 		{072DDE95-0E39-413D-95EB-6B2B9EDBF043}.Release|x64.ActiveCfg = Release|Win32
 		{8E1D799D-D3FA-41C9-9169-5EE1CBB3A717}.Debug|Win32.ActiveCfg = Debug|Win32
 		{8E1D799D-D3FA-41C9-9169-5EE1CBB3A717}.Debug|Win32.Build.0 = Debug|Win32
@@ -85,6 +85,12 @@ Global
 		{7C238007-9306-4EE1-A7B2-79069C8E4411}.Release|Win32.ActiveCfg = Release|Win32
 		{7C238007-9306-4EE1-A7B2-79069C8E4411}.Release|Win32.Build.0 = Release|Win32
 		{7C238007-9306-4EE1-A7B2-79069C8E4411}.Release|x64.ActiveCfg = Release|Win32
+		{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}.Debug|Win32.Build.0 = Debug|Win32
+		{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}.Debug|x64.ActiveCfg = Debug|Win32
+		{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}.Release|Win32.ActiveCfg = Release|Win32
+		{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}.Release|Win32.Build.0 = Release|Win32
+		{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
