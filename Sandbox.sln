@@ -23,6 +23,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "D3DReflect", "D3DReflect\D3
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BitonicSort", "BitonicSort\BitonicSort.vcxproj", "{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PixelWindow", "PixelWindow\PixelWindow.vcxproj", "{AF93E78A-C823-439B-9A61-3922A1AFDC84}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -91,6 +93,12 @@ Global
 		{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}.Release|Win32.ActiveCfg = Release|Win32
 		{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}.Release|Win32.Build.0 = Release|Win32
 		{D7BDD00B-680F-4CD9-A285-2D8265E0D54D}.Release|x64.ActiveCfg = Release|Win32
+		{AF93E78A-C823-439B-9A61-3922A1AFDC84}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AF93E78A-C823-439B-9A61-3922A1AFDC84}.Debug|Win32.Build.0 = Debug|Win32
+		{AF93E78A-C823-439B-9A61-3922A1AFDC84}.Debug|x64.ActiveCfg = Debug|Win32
+		{AF93E78A-C823-439B-9A61-3922A1AFDC84}.Release|Win32.ActiveCfg = Release|Win32
+		{AF93E78A-C823-439B-9A61-3922A1AFDC84}.Release|Win32.Build.0 = Release|Win32
+		{AF93E78A-C823-439B-9A61-3922A1AFDC84}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
