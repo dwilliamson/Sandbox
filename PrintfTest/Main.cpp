@@ -1427,7 +1427,7 @@ void doit(Function<void(int&)> a)
 }*/
 
 
-#include <stdio.h>
+/*#include <stdio.h>
 #include <assert.h>
 #include <new>
 #include <functional>
@@ -1689,7 +1689,9 @@ struct StoredCall
 	virtual ~StoredCall() { }
 
 	// Execute stored call
-	virtual void Execute() /*const*/ = 0;
+	virtual void Execute()
+	//const
+	= 0;
 };
 
 
@@ -1849,4 +1851,199 @@ int main()
 	FunctionNew<int(int)> n2([](int x){ return x * 6; });
 	n2(11);
 	FunctionNew<int()> n3(&NewIt, 5);
+}
+*/
+
+
+/*#include <stdio.h>
+#include <Windows.h>
+
+
+typedef unsigned int uint;
+
+union FP32
+{
+	uint u;
+	float f;
+	struct
+	{
+		uint Mantissa : 23;
+		uint Exponent : 8;
+		uint Sign : 1;
+	};
+};
+
+union FP16
+{
+	unsigned short u;
+	struct
+	{
+		uint Mantissa : 10;
+		uint Exponent : 5;
+		uint Sign : 1;
+	};
+};
+
+
+static FP32 half_to_float(FP16 h)
+{
+	FP32 o = { 0 };
+
+	// From ISPC ref code
+	if (h.Exponent == 0 && h.Mantissa == 0) // (Signed) zero
+		o.Sign = h.Sign;
+	else
+	{
+		if (h.Exponent == 0) // Denormal (will convert to normalized)
+		{
+			// Adjust mantissa so it's normalized (and keep track of exp adjust)
+			int e = -1;
+			uint m = h.Mantissa;
+			do
+			{
+				e++;
+				m <<= 1;
+			} while ((m & 0x400) == 0);
+
+			o.Mantissa = (m & 0x3ff) << 13;
+			o.Exponent = 127 - 15 - e;
+			o.Sign = h.Sign;
+		}
+		else if (h.Exponent == 0x1f) // Inf/NaN
+		{
+			// NOTE: It's safe to treat both with the same code path by just truncating
+			// lower Mantissa bits in NaNs (this is valid).
+			o.Mantissa = h.Mantissa << 13;
+			o.Exponent = 255;
+			o.Sign = h.Sign;
+		}
+		else // Normalized number
+		{
+			o.Mantissa = h.Mantissa << 13;
+			o.Exponent = 127 - 15 + h.Exponent;
+			o.Sign = h.Sign;
+		}
+	}
+
+	return o;
+}
+
+
+unsigned int div10(unsigned int dividend)
+{
+	//107374182;
+	unsigned __int64 invDivisor = 107374182;
+	return (unsigned int)((invDivisor * dividend) >> 32);
+}
+unsigned short div40_s(unsigned short dividend)
+{
+	//107374182;
+	unsigned int invDivisor = 1368;
+	return (unsigned short)((invDivisor * dividend) >> 16);
+}
+
+
+int main()
+{
+	int x = div10(100);
+	unsigned short y = div40_s(100);
+
+	for (unsigned int i = 0; i < 32768; i++)
+	{
+		FP16 fp16 = { i };
+		FP32 fp32 = half_to_float(fp16);
+		printf("%f\n", fp32.f);
+	}
+
+	return 0;
+}*/
+
+
+#include <malloc.h>
+#include <stdio.h>
+
+
+struct Data;
+Data* NewData(unsigned int size);
+void DeleteData(Data* data);
+
+
+struct API
+{
+	void* operator new(unsigned int, void* data)
+	{
+		return data;
+	}
+	void* operator new(unsigned int size)
+	{
+		//data = NewData(size);
+		return NewData(size);
+	}
+	void operator delete(void* p)
+	{
+		DeleteData((Data*)p);
+	}
+
+	void DoStuff();
+
+	// Needs to be here as a dummy field, preventing default API constructor overwriting the derived constructor
+	//
+	//    1. Makes the class inspectable in the debugger
+	//    2. Provides a dummy field for default API constructor initialisation,
+	//       without which the derived class would be overwritten
+	Data* data;
+};
+
+
+struct Data : public API
+{
+	Data()
+	{
+		x = 3;
+		resource = malloc(x);
+	}
+
+	~Data()
+	{
+		free(resource);
+	}
+
+	int x;
+	void* resource;
+};
+
+
+Data* NewData(unsigned int size)
+{
+	Data* data = (Data*)malloc(sizeof(Data));
+	new (data) Data();
+
+	return data;
+}
+void DeleteData(Data* data)
+{
+	delete data;
+}
+
+
+void API::DoStuff()
+{
+	Data* this_ptr = (Data*)this;
+	printf("%d\n", this_ptr->x);
+}
+
+
+#include <type_traits>
+
+
+int main()
+{
+	API* api = new API();
+	api->DoStuff();
+	delete api;
+
+	float a = 1.0;
+	double b = 2.0;
+	static_assert(std::is_same<decltype(a*b), double>::value, "check");
+	//decltype(a * b) c = a * b;
 }
