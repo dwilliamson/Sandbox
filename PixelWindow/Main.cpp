@@ -227,6 +227,14 @@ PixelWindow::PixelWindow(const char* title, int width, int height)
 	if (m_Pixels == NULL)
 		return;
 
+	RECT rc;
+
+	GetWindowRect(m_Window, &rc);
+
+	int x = (GetSystemMetrics(SM_CXSCREEN) - rc.right) / 2;
+	int y = (GetSystemMetrics(SM_CYSCREEN) - rc.bottom) / 2;
+	SetWindowPos(m_Window, HWND_TOP, x, y, 0, 0, SWP_NOSIZE);
+
 	// Show everything
 	UpdateWindow(m_Window);
 	ShowWindow(m_Window, SW_SHOW);
