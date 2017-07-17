@@ -1959,7 +1959,7 @@ int main()
 }*/
 
 
-#include <malloc.h>
+/*#include <malloc.h>
 #include <stdio.h>
 
 
@@ -2046,4 +2046,37 @@ int main()
 	double b = 2.0;
 	static_assert(std::is_same<decltype(a*b), double>::value, "check");
 	//decltype(a * b) c = a * b;
+}*/
+
+#include <stdio.h>
+
+
+struct API
+{
+	virtual void DoIt() = 0;
+};
+
+namespace
+{
+	struct Impl final : public API
+	{
+		void DoIt() override
+		{
+			printf("DoIt\n");
+		}
+	};
+}
+
+namespace
+{
+	void Hello()
+	{
+	}
+}
+
+int main()
+{
+	API* api = new Impl();
+	api->DoIt();
+	delete api;
 }
