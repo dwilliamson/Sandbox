@@ -117,6 +117,7 @@ int main()
 			D3D11_SHADER_TYPE_DESC desc3;
 			type->GetDesc(&desc3);
 			FIELD_STR(desc3, Name);
+			FIELD_INT(desc3, Members);
 		}
 	}
 
