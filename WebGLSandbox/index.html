@@ -1,0 +1,195 @@
+
+<html>
+	<body>
+
+ 		<link rel="stylesheet" href="Extern/codemirror-3.0/lib/codemirror.css">
+ 		<link rel="stylesheet" href="Extern/codemirror-3.0/theme/monokai.css">
+
+		<script type="text/javascript" src="Extern/codemirror-3.0/lib/codemirror.js"></script>
+		<script type="text/javascript" src="Extern/codemirror-3.0/mode/javascript/javascript.js"></script>
+
+		<script type="text/javascript" src="Extern/gl-matrix-min.js"></script>
+		<script type="text/javascript" src="Main.js"></script>
+
+		<div style="font-family:Arial; margin-bottom: 20px; margin-left: auto; margin-right: auto; width: 50%;">
+
+			<p style="border: 1px black dashed; padding: 10px; display: table; text-align: center;">
+			Use left-click mouse to rotate camera and WSAD to move around.<br>
+			Any javascript/shader changes are updated as you type. <br>
+			Use <span style="font-family: Courier; color: #666; font-weight: bold;">//@buffer(name)</span> tag to create text buffers you can reference in javascript code. <br>
+			Sandbox source: <a href="Main.js">Main.js</a>
+			</p>
+
+		</div>
+
+		<div>
+			<div id="CanvasHost" style="width:48%; float:left;overflow:hidden; margin-right:1px;">
+				<canvas id="MainCanvas" height="600"></canvas>
+				<pre id="Status" style="background-color:CCC; margin-top:2px; font-family:Arial;">Status: OK</div>
+			</div>
+
+			<div id="CodeEditor" style="width:48%; float:left;">
+
+<textarea id="CodeTextArea">
+//
+// Illustration of the "hairy ball" problem
+// http://en.wikipedia.org/wiki/Hairy_ball_theorem
+//
+// Continuous tangent field over the sphere built by blending two
+// perpendicular, cylindrical fields.
+//
+
+
+function smoothstep(edge0, edge1, x)
+{
+	var t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0.0), 1.0);
+	return t * t * (3 - 2 * t);
+}
+
+
+function DualCylinderBasis(p)
+{
+	// Up is vector from origin
+	var z = vec3.create();
+	vec3.normalize(z, p);
+	
+	// Create two cylindrical basis vectors
+	var x0 = vec3.create();
+	vec3.set(x0, -z[2], 0, z[0]);
+	var x1 = vec3.create();
+	vec3.set(x1, z[1], -z[2], 0);
+	
+	// Interpolate between them to create a continuous basis
+	var t = Math.abs(z[1]);
+	t = smoothstep(0.2, 0.8, t);
+	var x = vec3.create();
+	vec3.lerp(x, x0, x1, t);
+	vec3.normalize(x, x);
+	
+	// Final vector is perpendicular to both
+	var y = vec3.create();
+	vec3.cross(y, z, x);
+	
+	// Create basis matrix
+	var basis = mat3.create();
+	basis[0] = x[0];
+	basis[1] = x[1];
+	basis[2] = x[2];
+	basis[3] = y[0];
+	basis[4] = y[1];
+	basis[5] = y[2];
+	basis[6] = z[0];
+	basis[7] = z[1];
+	basis[8] = z[2];
+	
+	return basis;
+}
+
+
+function CreateTangentQuads(mesh)
+{
+	var quad_size = 0.02;
+	
+	var positions = [ ];
+	var indices = [ ];
+	
+	// Build a quad for each vertex in the source mesh
+	for (var i in mesh.Vertices)
+	{
+		var p = mesh.Vertices[i];
+		
+		var basis = DualCylinderBasis(p);
+		
+		for (var j = 0; j < 4; j++)
+		{
+			// Quad points in the x,y,0 plane
+			var pj = vec3.create();
+			pj[0] = (j & 1) ? -quad_size : quad_size;
+			pj[1] = (j & 2) ? -quad_size : quad_size;
+			pj[2] = 0;
+			
+			// Rotate to tangent
+			vec3.transformMat3(pj, pj, basis);
+			
+			// Shift out to the edge of the sphere
+			pj[0] += p[0] * 1.01;
+			pj[1] += p[1] * 1.01;
+			pj[2] += p[2] * 1.01;
+			
+			positions.push(pj);
+		}
+
+		// Add quad as two triangles		
+		var i0 = i * 4 + 0;
+		var i1 = i * 4 + 1;
+		var i2 = i * 4 + 2;
+		var i3 = i * 4 + 3;
+		indices.push(i0);
+		indices.push(i1);
+		indices.push(i2);
+		indices.push(i2);
+		indices.push(i1);
+		indices.push(i3);
+	}
+	
+	return new Geometry(IndexType.TRIANGLE_LIST, positions, indices);
+}
+
+
+// Generate initial octahedron and subdivide it
+var octahedron_geometry = CreateOctahedronGeometry();
+var depth = 5;
+for (var i = 0; i < depth; i++)
+	SubdivideGeometryTriangleList(octahedron_geometry);
+
+// Use nlerp to project onto sphere. Would be better to slerp to get less
+// distortion but that breaks the indexing scheme. UNCOMMENT to see source
+// octahedron.
+ProjectVerticesToSphere(octahedron_geometry.Vertices);
+
+// Build tangent quads for each vertex on the sphere
+var tangent_quad_geometry = CreateTangentQuads(octahedron_geometry);
+
+scene.AddMesh(DrawType.WIREFRAME_TRIS, octahedron_geometry, undefined, BasisShader);
+scene.AddMesh(DrawType.WIREFRAME_TRIS, tangent_quad_geometry);
+
+
+
+//===================================================================
+//@buffer(BasisShader)
+//===================================================================
+
+
+
+precision highp float;
+
+uniform vec3 glColour;
+
+varying vec3 ls_Position;
+
+
+void main(void)
+{
+	vec3 y = normalize(ls_Position);
+	
+	vec3 x0 = normalize(vec3(-y.z, 0, y.x));
+	vec3 x1 = normalize(vec3(y.y, -y.z, 0));
+	
+	float t = abs(y.y);
+	t = smoothstep(0.2, 0.8, t);
+	vec3 x = normalize(mix(x0, x1, t));
+	
+	gl_FragColor = vec4(abs(x) + glColour*0.1, 1);
+}
+</textarea>
+			</div>
+		</div>
+
+		<div style="clear:both"></div>
+
+		<script type="text/javascript">
+			SetupLiveEditEnvironment("MainCanvas", "CodeTextArea");
+		</script>
+
+	</body>
+</html>
