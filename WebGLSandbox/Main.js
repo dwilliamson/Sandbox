@@ -1020,9 +1020,36 @@ function main(canvas_name)
 	gl.depthFunc(gl.LEQUAL);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-	// Load default shaders
-	var fshader = LoadShader(gl, "Fragment.fsh");
-	var vshader = LoadShader(gl, "Vertex.vsh");
+	// Create default shaders
+
+	var fshader = CreateShader(gl, gl.FRAGMENT_SHADER, `
+		#ifdef GL_ES
+		precision highp float;
+		#endif
+
+		uniform vec3 glColour;
+
+		void main(void)
+		{
+			gl_FragColor = vec4(glColour, 1);
+		}
+	`);
+
+	var vshader = CreateShader(gl, gl.VERTEX_SHADER,`
+		attribute vec3 glVertex;
+
+		uniform mat4 glModelViewMatrix;
+		uniform mat4 glProjectionMatrix;
+
+		varying vec3 ls_Position;
+
+		void main(void)
+		{
+			ls_Position = glVertex;
+			gl_Position = glProjectionMatrix * glModelViewMatrix * vec4(glVertex, 1.0);
+		}
+	`);
+
 	if (fshader == null || vshader == null)
 		return null;
 
