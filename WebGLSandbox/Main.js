@@ -777,6 +777,12 @@ Mesh = (function()
 })();
 
 
+var CameraType = {
+	FLY : 0,
+	ROTATE : 1,
+};
+
+
 Scene = (function()
 {
 	function Scene(gl, vshader, fshader, canvas)
@@ -810,6 +816,7 @@ Scene = (function()
 		this.CameraRotation = vec3.create();
 		vec3.set(this.CameraPosition, 0, 0, 3);
 		vec3.set(this.CameraRotation, 0, 0, 0);
+		this.CameraType = CameraType.ROTATE;
 
 		this.UpdateMatrices();
 	}
@@ -831,7 +838,10 @@ Scene = (function()
 		// Calculate view matrix from the camera
 		mat4.identity(this.glInvViewMatrix);
 		mat4.translate(this.glInvViewMatrix, this.glInvViewMatrix, this.CameraPosition);
-		mat4.mul(this.glInvViewMatrix, this.glInvViewMatrix, this.CameraRotationMatrix);
+		if (this.CameraType == CameraType.ROTATE)
+			mat4.mul(this.glInvViewMatrix, this.CameraRotationMatrix, this.glInvViewMatrix);
+		else
+			mat4.mul(this.glInvViewMatrix, this.glInvViewMatrix, this.CameraRotationMatrix);
 		mat4.invert(this.glViewMatrix, this.glInvViewMatrix);
 	}
 
@@ -965,8 +975,11 @@ function DrawScene(gl, scene, input)
 	vec3.set(forward, 0, 0, -speed);
 	vec3.set(right, speed, 0, 0);
 	vec3.set(up, 0, speed, 0);
-	vec3.transformMat4(forward, forward, rotation_matrix);
-	vec3.transformMat4(right, right, rotation_matrix);
+	if (scene.CameraType == CameraType.FLY)
+	{
+		vec3.transformMat4(forward, forward, rotation_matrix);
+		vec3.transformMat4(right, right, rotation_matrix);
+	}
 
 	// Move the camera based on what the user presses
 	if (input.KeyState[Keys.W])
