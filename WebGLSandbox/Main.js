@@ -13,42 +13,17 @@ function FatalError(error)
 }
 
 
-StatusBar = (function()
+function ClearError(status_bar)
 {
-    function StatusBar(element)
-    {
-        this.Element = element;
-    }
-
-    StatusBar.prototype.ClearError = function()
-    {
-        this.Element.innerHTML = "Status: OK";
-        this.Element.style.backgroundColor = "CCC";
-    }
-
-    StatusBar.prototype.SetError = function(error)
-    {
-        this.Element.innerHTML = error;
-        this.Element.backgroundColor = "FAA";
-    }
-
-    return StatusBar;    
-})();
-
-
-function ClearError(error)
-{
-	var status = document.getElementById("Status");
-	status.innerHTML = "Status: OK";
-	status.style.backgroundColor = "CCC";
+	status_bar.innerHTML = "&nbsp;Status: OK";
+	status_bar.style.backgroundColor = "CCC";
 }
 
 
-function SetError(error)
+function SetError(status_bar, error)
 {
-	var status = document.getElementById("Status");
-	status.innerHTML = error;
-	status.style.backgroundColor = "FAA";
+	status_bar.innerHTML = "&nbsp;" + error;
+	status_bar.style.backgroundColor = "FAA";
 }
 
 
@@ -634,7 +609,7 @@ function SetShaderUniformMatrix4(gl, program, uniform_name, matrix)
 }
 
 
-function InitWebGL(canvas)
+function InitWebGL(canvas, status_bar)
 {
 	// Get WebGL context
 	var gl = null;
@@ -648,7 +623,7 @@ function InitWebGL(canvas)
 
 	// Blitz page on error
 	if (!gl)
-		SetError("Couldn't initialise WebGL");
+		SetError(status_bar, "Couldn't initialise WebGL");
 
 	return gl;
 }
@@ -660,8 +635,6 @@ function InitWebGL(canvas)
 // ====================================================================================== //
 
 
-
-var g_KeyState = [ ];
 
 var Keys = {
 
@@ -678,55 +651,67 @@ var Keys = {
 	MB:0,
 };
 
-var g_MouseDelta = [ 0, 0 ];
-var g_LastMouseDragPos = null;
 
-
-function InitInput(canvas)
+Input = (function()
 {
-	// Can't attach key events to a canvas
-	// Need to avoid processing movement for elements other than the canvas
-	// So check for keypresses in the body instead
-	document.onkeydown = function(ev)
+	function Input(canvas)
 	{
-		if (ev.target == document.body)
-			g_KeyState[ev.keyCode] = true;
+		// Initialise default state
+		this.KeyState = [ ];
+		this.MouseDelta = [ 0, 0 ];
+		this.LastMouseDragPos = null;
+
+		// Set event handlers
+		var self = this;
+		canvas.onkeydown = function(ev) { OnKeyDown(self, ev); };
+		canvas.onkeyup = function(ev) { OnKeyUp(self, ev); };
+		canvas.onmousedown = function(ev) { OnMouseDown(self, ev); };
+		canvas.onmouseup = function(ev) { OnMouseUp(self, ev); };
+		canvas.onmouseout = function(ev) { OnMouseOut(self, ev); };
+		canvas.onmousemove = function(ev) { OnMouseMove(self, ev); };
 	}
-	document.onkeyup = function(ev)
+
+	// Listening for keyboard events requires tabindex set on the canvas so that it can focus
+	function OnKeyDown(self, ev)
 	{
-		if (ev.target == document.body)
-			g_KeyState[ev.keyCode] = false;
+		self.KeyState[ev.keyCode] = true;
+	}
+	function OnKeyUp(self, ev)
+	{
+		self.KeyState[ev.keyCode] = false;
 	}
 
 	// Handle mouse presses
-	canvas.onmousedown = function(ev)
+	function OnMouseDown(self, ev)
 	{
-		g_KeyState[Keys.MB] = true;
-		g_LastMouseDragPos = [ ev.clientX, ev.clientY ];
+		self.KeyState[Keys.MB] = true;
+		self.LastMouseDragPos = [ ev.clientX, ev.clientY ];
 	}
-	canvas.onmouseup = function(ev)
+	function OnMouseUp(self, ev)
 	{
-		g_KeyState[Keys.MB] = false;
-		g_LastMouseDragPos = null;
+		self.KeyState[Keys.MB] = false;
+		self.LastMouseDragPos = null;
 	}
-	canvas.onmouseout = function(ev)
+	function OnMouseOut(self, ev)
 	{
-		g_KeyState[Keys.MB] = false;
-		g_LastMouseDragPos = null;
+		self.KeyState[Keys.MB] = false;
+		self.LastMouseDragPos = null;
 	}
 
 	// Handle mouse move dragging
-	canvas.onmousemove = function(ev)
+	function OnMouseMove(self, ev)
 	{
-		if (g_LastMouseDragPos)
+		if (self.LastMouseDragPos)
 		{
-			g_MouseDelta[0] += ev.clientX - g_LastMouseDragPos[0];
-			g_MouseDelta[1] += ev.clientY - g_LastMouseDragPos[1];
-			g_LastMouseDragPos[0] = ev.clientX;
-			g_LastMouseDragPos[1] = ev.clientY;
+			self.MouseDelta[0] += ev.clientX - self.LastMouseDragPos[0];
+			self.MouseDelta[1] += ev.clientY - self.LastMouseDragPos[1];
+			self.LastMouseDragPos[0] = ev.clientX;
+			self.LastMouseDragPos[1] = ev.clientY;
 		}
 	}
-}
+	
+	return Input;
+})();
 
 
 
@@ -960,17 +945,17 @@ Scene = (function()
 })();
 
 
-function DrawScene(gl, scene)
+function DrawScene(gl, scene, input)
 {
 	gl.clearColor(0, 0, 0, 1);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 	// Update camera rotation and reset mouse delta
-	scene.CameraRotation[0] -= g_MouseDelta[1] * 0.004;
-	scene.CameraRotation[1] -= g_MouseDelta[0] * 0.004;
+	scene.CameraRotation[0] -= input.MouseDelta[1] * 0.004;
+	scene.CameraRotation[1] -= input.MouseDelta[0] * 0.004;
 	var rotation_matrix = scene.UpdateRotationMatrix();
-	g_MouseDelta[0] = 0;
-	g_MouseDelta[1] = 0;
+	input.MouseDelta[0] = 0;
+	input.MouseDelta[1] = 0;
 
 	// Construct movement vector frame from the rotation matrix
 	var speed = 0.05;
@@ -984,34 +969,33 @@ function DrawScene(gl, scene)
 	vec3.transformMat4(right, right, rotation_matrix);
 
 	// Move the camera based on what the user presses
-	if (g_KeyState[Keys.W])
+	if (input.KeyState[Keys.W])
 		vec3.add(scene.CameraPosition, scene.CameraPosition, forward);
-	if (g_KeyState[Keys.S])
+	if (input.KeyState[Keys.S])
 		vec3.sub(scene.CameraPosition, scene.CameraPosition, forward);
-	if (g_KeyState[Keys.A])
+	if (input.KeyState[Keys.A])
 		vec3.sub(scene.CameraPosition, scene.CameraPosition, right);
-	if (g_KeyState[Keys.D])
+	if (input.KeyState[Keys.D])
 		vec3.add(scene.CameraPosition, scene.CameraPosition, right);
-	if (g_KeyState[Keys.SPACE])
+	if (input.KeyState[Keys.SPACE])
 		vec3.add(scene.CameraPosition, scene.CameraPosition, up);
-	if (g_KeyState[Keys.SHIFT])
+	if (input.KeyState[Keys.SHIFT])
 		vec3.sub(scene.CameraPosition, scene.CameraPosition, up);
 
 	scene.DrawMeshes();
 }
 
 
-function main(canvas_name)
+function main(canvas, status_bar)
 {
 	// Resize the width of the canvas to that of its parent
-	var canvas = document.getElementById(canvas_name);
 	canvas.width = canvas.parentNode.offsetWidth;
 
 	// Initialise and exit on error
-	var gl = InitWebGL(canvas);
+	var gl = InitWebGL(canvas, status_bar);
 	if (!gl)
 		return null;
-	InitInput(canvas);
+	var input = new Input(canvas);
 
 	// Initialise the window with red backdrop
 	gl.clearColor(1, 0, 0, 1);
@@ -1056,18 +1040,18 @@ function main(canvas_name)
 	var scene = new Scene(gl, vshader, fshader, canvas);
 
 	(function animloop(){
+		DrawScene(gl, scene, input);
 		window.requestAnimationFrame(animloop);
-		DrawScene(gl, scene);
 	})();
 
 	return scene;
 }
 
 
-function InitCodeMirror(text_area_name)
+function InitCodeMirror(code_editor, height_matcher)
 {	
 	var cm = CodeMirror.fromTextArea(
-		document.getElementById(text_area_name),
+		code_editor,
 		configuration =
 		{
 			theme: "monokai",
@@ -1079,13 +1063,12 @@ function InitCodeMirror(text_area_name)
 			gutter: true,
 		});
 
-	var h = document.getElementById("CanvasHost").offsetHeight;
-	cm.setSize(null, h);
+	cm.setSize(null, height_matcher.offsetHeight);
 	return cm;
 }
 
 
-function ExecuteCode(cm, scene)
+function ExecuteCode(cm, scene, status_bar)
 {
 	var old_scene_meshes = scene.Meshes;
 	scene.Meshes = [ ];
@@ -1115,34 +1098,34 @@ function ExecuteCode(cm, scene)
 
 	try
 	{
-		ClearError();
+		ClearError(status_bar);
 		eval(eval_code);
 	}
 	catch (e)
 	{
-		SetError(e.message);
+		SetError(status_bar, e.message);
 		scene.Meshes = old_scene_meshes;
 	}
 }
 
 
-function SetupLiveEditEnvironment(canvas_name, text_area_name)
+function SetupLiveEditEnvironment(canvas, code_editor, height_matcher, status_bar)
 {
 	// Start the code error first to give the user something to look at in case scene
 	// creation fails
-	var cm = InitCodeMirror(text_area_name);
+	var cm = InitCodeMirror(code_editor, height_matcher);
 
 	// Load existing code from user's local store
 	if (typeof(Storage) !== "undefined" && localStorage.code)
 		cm.setValue(localStorage.code);
 
 	// Create the WebGL context/scene
-	var scene = main(canvas_name);
+	var scene = main(canvas, status_bar);
 	if (scene == null)
 		return;
 
 	// Perform the first code execution run
-	ExecuteCode(cm, scene);
+	ExecuteCode(cm, scene, status_bar);
 	var last_code_hash = HashString(cm.getValue());
 
 	// Check for code changes periodically
@@ -1152,7 +1135,7 @@ function SetupLiveEditEnvironment(canvas_name, text_area_name)
 		if (code_hash != last_code_hash)
 		{
 			last_code_hash = code_hash;
-			ExecuteCode(cm, scene);
+			ExecuteCode(cm, scene, status_bar);
 		}
 	}, 1000);
 }
