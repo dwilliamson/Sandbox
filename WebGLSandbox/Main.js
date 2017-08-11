@@ -1081,7 +1081,7 @@ function InitCodeMirror(code_editor, height_matcher)
 }
 
 
-function ExecuteCode(cm, scene, status_bar)
+function ExecuteCode(cm, scene, status_bar, lsname)
 {
 	var old_scene_meshes = scene.Meshes;
 	scene.Meshes = [ ];
@@ -1092,7 +1092,7 @@ function ExecuteCode(cm, scene, status_bar)
 	// Continuously save user's code
 	var user_code = cm.getValue();
 	if (typeof(localStorage) !== "undefined")
-		localStorage.code = user_code;
+		localStorage[lsname + "_Code"] = user_code;
 
 	// Split the user code into any specified buffers
 	var buffer_re = /\/\/@buffer\(([^\)]*)\)/;
@@ -1122,15 +1122,19 @@ function ExecuteCode(cm, scene, status_bar)
 }
 
 
-function SetupLiveEditEnvironment(canvas, code_editor, height_matcher, status_bar)
+function SetupLiveEditEnvironment(canvas, code_editor, height_matcher, status_bar, lsname)
 {
 	// Start the code error first to give the user something to look at in case scene
 	// creation fails
 	var cm = InitCodeMirror(code_editor, height_matcher);
 
 	// Load existing code from user's local store
-	if (typeof(Storage) !== "undefined" && localStorage.code)
-		cm.setValue(localStorage.code);
+	if (typeof(Storage) !== "undefined")
+	{
+		var store = localStorage[lsname + "_Code"];
+		if (store)
+			cm.setValue(store);
+	}
 
 	// Create the WebGL context/scene
 	var scene = main(canvas, status_bar);
@@ -1138,7 +1142,7 @@ function SetupLiveEditEnvironment(canvas, code_editor, height_matcher, status_ba
 		return;
 
 	// Perform the first code execution run
-	ExecuteCode(cm, scene, status_bar);
+	ExecuteCode(cm, scene, status_bar, lsname);
 	var last_code_hash = HashString(cm.getValue());
 
 	// Check for code changes periodically
@@ -1148,7 +1152,7 @@ function SetupLiveEditEnvironment(canvas, code_editor, height_matcher, status_ba
 		if (code_hash != last_code_hash)
 		{
 			last_code_hash = code_hash;
-			ExecuteCode(cm, scene, status_bar);
+			ExecuteCode(cm, scene, status_bar, lsname);
 		}
 	}, 1000);
 }
