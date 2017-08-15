@@ -15,15 +15,14 @@ function FatalError(error)
 
 function ClearError(status_bar)
 {
-	status_bar.innerHTML = "&nbsp;Status: OK";
-	status_bar.style.backgroundColor = "CCC";
+	status_bar.innerHTML = "Status: OK";
+	status_bar.style.color = "FFF";
 }
 
 
 function SetError(status_bar, error)
 {
-	status_bar.innerHTML = "&nbsp;" + error;
-	status_bar.style.backgroundColor = "FAA";
+	status_bar.innerHTML = "Status: <span style='color:#f44'>Errors</span><br/>" + error;
 }
 
 

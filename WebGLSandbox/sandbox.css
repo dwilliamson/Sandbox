@@ -9,6 +9,11 @@
 
     width: 48%;
     margin-right: 1px;
+
+    /* Default font render */
+    color: #FFF;
+    font-family: Arial;
+    font-size: 10pt;
 }
 
 
@@ -18,11 +23,6 @@
     position: absolute;
     top: 10px;
     left: 10px;
-
-    /* Default font render */
-    color: #FFF;
-    font-family: Arial;
-    font-size: 10pt;
 }
 
 
@@ -44,4 +44,13 @@
     color: #000;
     background: #ccf;
     border-color: #ccf;
+}
+
+
+.Status
+{
+    /* Overlay the bottom of the canvas */
+    position: absolute;
+    bottom: 0px;
+    left: 10px;    
 }
