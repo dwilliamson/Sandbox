@@ -1,5 +1,8 @@
 
 <html>
+	<head>
+ 		<link rel="stylesheet" type="text/css" href="sandbox.css">
+	</head>
 	<body>
 
  		<link rel="stylesheet" href="Extern/codemirror-3.0/lib/codemirror.css">
@@ -30,11 +33,11 @@
 
 
 		<div>
-			<div id="CanvasHost" style="width:48%; float:left;overflow:hidden; margin-right:1px;">
+			<div class="CanvasHost" id="CanvasHost">
 				<canvas id="MainCanvas" height="600" tabindex="1"></canvas>
-				<div>
-					<div id="FlyButton" style="background: #fff; margin: 1px; padding: 2px; font-family:Arial; float:left; border: 1px solid;">Fly</div>
-					<div id="RotateButton" style="background: #fff; margin: 1px; padding: 2px; font-family:Arial; float:left; font-weight:bold; border: 1px solid;">Rotate</div>
+				<div class="Buttons">Control Mode
+					<label><input type="radio" name="select" /><span>Fly</span></label>
+					<label><input type="radio" name="select" /><span>Rotate</span></label>
 				</div>
 				<pre id="Status" style="background-color:CCC; padding: 2px; margin: 1px; border: 1px solid #CCC; font-family:Arial;">Status: OK</pre>
 			</div>
@@ -203,11 +206,11 @@ void main(void)
 
 
 		<div>
-			<div id="CanvasHost2" style="width:48%; float:left;overflow:hidden; margin-right:1px;">
-				<canvas id="MainCanvas2" height="600" tabindex="2"></canvas>
-				<div>
-					<div id="FlyButton2" style="background: #fff; margin: 1px; padding: 2px; font-family:Arial; float:left; border: 1px solid;">Fly</div>
-					<div id="RotateButton2" style="background: #fff; margin: 1px; padding: 2px; font-family:Arial; float:left; font-weight:bold; border: 1px solid;">Rotate</div>
+			<div class="CanvasHost" id="CanvasHost2">
+				<canvas id="MainCanvas2" height="600" tabindex="1"></canvas>
+				<div class="Buttons">Control Mode
+					<label><input type="radio" name="select2" /><span>Fly</span></label>
+					<label><input type="radio" name="select2" /><span>Rotate</span></label>
 				</div>
 				<pre id="Status2" style="background-color:CCC; padding: 2px; margin: 1px; border: 1px solid #CCC; font-family:Arial;">Status: OK</pre>
 			</div>
