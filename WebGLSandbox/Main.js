@@ -1121,11 +1121,56 @@ function ExecuteCode(cm, scene, status_bar, lsname)
 }
 
 
-function SetupLiveEditEnvironment(canvas, code_editor, height_matcher, status_bar, lsname)
+SandboxHTML = (function()
 {
+	function SandboxHTML(textarea, lsname)
+	{
+		// Create host HTML
+		var div = document.createElement("div");
+		var html = `
+			<div class="CanvasHost">
+				<canvas height="600" tabindex="1"></canvas>
+				<div class="Buttons">Control Mode
+					<label><input type="radio" name="select3" /><span>Fly</span></label>
+					<label><input type="radio" name="select3" /><span>Rotate</span></label>
+				</div>
+				<pre class="Status">Status: OK</pre>
+			</div>
+
+			<div class="CodeEditor">
+			</div>
+		`;
+
+		// Set name of the radio button set
+		html = html.replace("select3", lsname + "Radio");
+		html = html.replace("select3", lsname + "Radio");
+		div.innerHTML = html;
+
+		// Swap textarea with created div
+		textarea.parentNode.insertBefore(div, textarea);
+		textarea.parentNode.removeChild(textarea);
+
+		// Record for future use
+		this.Host = div.children[0];
+		this.Editor = div.children[1];
+		this.Canvas = this.Host.children[0];
+		this.Status = this.Host.children[2];
+
+		// Put textarea in the editor div
+		this.Editor.appendChild(textarea);
+	}
+
+	return SandboxHTML;
+})();
+
+
+function SetupLiveEditEnvironment(textarea, lsname)
+{
+	var html = new SandboxHTML(textarea, lsname);
+
 	// Start the code error first to give the user something to look at in case scene
 	// creation fails
-	var cm = InitCodeMirror(code_editor, height_matcher);
+	var cm = InitCodeMirror(html.Editor, html.Host);
 
 	// Load existing code from user's local store
 	if (typeof(Storage) !== "undefined")
@@ -1136,12 +1181,12 @@ function SetupLiveEditEnvironment(canvas, code_editor, height_matcher, status_ba
 	}
 
 	// Create the WebGL context/scene
-	var scene = main(canvas, status_bar);
+	var scene = main(html.Canvas, html.Status);
 	if (scene == null)
 		return;
 
 	// Perform the first code execution run
-	ExecuteCode(cm, scene, status_bar, lsname);
+	ExecuteCode(cm, scene, html.Status, lsname);
 	var last_code_hash = HashString(cm.getValue());
 
 	// Check for code changes periodically
@@ -1151,7 +1196,7 @@ function SetupLiveEditEnvironment(canvas, code_editor, height_matcher, status_ba
 		if (code_hash != last_code_hash)
 		{
 			last_code_hash = code_hash;
-			ExecuteCode(cm, scene, status_bar, lsname);
+			ExecuteCode(cm, scene, html.Status, lsname);
 		}
 	}, 1000);
 }

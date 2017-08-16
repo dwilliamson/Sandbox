@@ -5,8 +5,9 @@
     position:relative;
 
     /* Join with the code editor on the right */
-    display: inline-block;
+    float: left;
     width: 48%;
+    margin-right: 2px;
 
     /* Default font render */
     color: #FFF;
@@ -55,6 +56,6 @@
 .CodeEditor
 {
     /* Join with the canvas on the left */
-    display: inline-block;
+    float: left;
     width: 48%;
 }

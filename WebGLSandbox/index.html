@@ -29,19 +29,8 @@
 
 
 
-		<div>
-			<div class="CanvasHost" id="CanvasHost">
-				<canvas id="MainCanvas" height="600" tabindex="1"></canvas>
-				<div class="Buttons">Control Mode
-					<label><input type="radio" name="select" /><span>Fly</span></label>
-					<label><input type="radio" name="select" /><span>Rotate</span></label>
-				</div>
-				<pre class="Status" id="Status">Status: OK</pre>
-			</div>
 
-			<div id="CodeEditor" class="CodeEditor">
-
-				<textarea id="CodeTextArea">
+		<textarea id="First">
 //
 // Illustration of the "hairy ball" problem
 // http://en.wikipedia.org/wiki/Hairy_ball_theorem
@@ -123,9 +112,9 @@ function CreateTangentQuads(mesh)
 			vec3.transformMat3(pj, pj, basis);
 			
 			// Shift out to the edge of the sphere
-			pj[0] += p[0] * 1.01;
-			pj[1] += p[1] * 1.01;
-			pj[2] += p[2] * 1.01;
+			pj[0] += p[0] * 1.03;
+			pj[1] += p[1] * 1.03;
+			pj[2] += p[2] * 1.03;
 			
 			positions.push(pj);
 		}
@@ -161,8 +150,8 @@ ProjectVerticesToSphere(octahedron_geometry.Vertices);
 // Build tangent quads for each vertex on the sphere
 var tangent_quad_geometry = CreateTangentQuads(octahedron_geometry);
 
-scene.AddMesh(DrawType.WIREFRAME_TRIS, octahedron_geometry, undefined, BasisShader);
-scene.AddMesh(DrawType.WIREFRAME_TRIS, tangent_quad_geometry);
+scene.AddMesh(DrawType.SOLID, octahedron_geometry, undefined, BasisShader);
+scene.AddMesh(DrawType.WIREFRAME_QUADS, tangent_quad_geometry);
 
 
 
@@ -189,29 +178,17 @@ void main(void)
 	float t = abs(y.y);
 	t = smoothstep(0.2, 0.8, t);
 	vec3 x = normalize(mix(x0, x1, t));
-	
+
 	gl_FragColor = vec4(abs(x) + glColour*0.1, 1);
 }
-</textarea>
-			</div>
-		</div>
+		</textarea>
+
 
 		<br/>
 
 
-		<div>
-			<div class="CanvasHost" id="CanvasHost2">
-				<canvas id="MainCanvas2" height="600" tabindex="1"></canvas>
-				<div class="Buttons">Control Mode
-					<label><input type="radio" name="select2" /><span>Fly</span></label>
-					<label><input type="radio" name="select2" /><span>Rotate</span></label>
-				</div>
-				<pre class="Status" id="Status2">Status: OK</pre>
-			</div>
+		<textarea id="Second">
 
-			<div id="CodeEditor2" class="CodeEditor">
-
-				<textarea id="CodeTextArea2">
 //
 // Illustration of the "hairy ball" problem
 // http://en.wikipedia.org/wiki/Hairy_ball_theorem
@@ -362,25 +339,17 @@ void main(void)
 	
 	gl_FragColor = vec4(abs(x) + glColour*0.1, 1);
 }
-</textarea>
-			</div>
-		</div>
+		</textarea>
 
 
 		<script type="text/javascript">
 
 			SetupLiveEditEnvironment(
-				document.getElementById("MainCanvas"),
-				document.getElementById("CodeTextArea"),
-				document.getElementById("CanvasHost"),
-				document.getElementById("Status"),
+				document.getElementById("First"),
 				"SandboxEnv");
 
 			SetupLiveEditEnvironment(
-				document.getElementById("MainCanvas2"),
-				document.getElementById("CodeTextArea2"),
-				document.getElementById("CanvasHost2"),
-				document.getElementById("Status2"),
+				document.getElementById("Second"),
 				"SandboxEnv2");
 
 		</script>
