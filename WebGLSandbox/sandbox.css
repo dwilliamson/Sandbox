@@ -5,10 +5,8 @@
     position:relative;
 
     /* Join with the code editor on the right */
-    float:left;
-
+    display: inline-block;
     width: 48%;
-    margin-right: 1px;
 
     /* Default font render */
     color: #FFF;
@@ -24,8 +22,6 @@
     top: 10px;
     left: 10px;
 }
-
-
 .Buttons label input
 {
     /* Disable default HTML radio display */
@@ -53,4 +49,12 @@
     position: absolute;
     bottom: 0px;
     left: 10px;    
+}
+
+
+.CodeEditor
+{
+    /* Join with the canvas on the left */
+    display: inline-block;
+    width: 48%;
 }
