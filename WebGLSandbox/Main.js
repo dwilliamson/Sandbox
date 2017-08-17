@@ -1168,7 +1168,7 @@ function SetupLiveEditEnvironment(textarea, lsname)
 {
 	var html = new SandboxHTML(textarea, lsname);
 
-	// Start the code error first to give the user something to look at in case scene
+	// Start the code editor first to give the user something to look at in case scene
 	// creation fails
 	var cm = InitCodeMirror(html.Editor, html.Host);
 
@@ -1180,23 +1180,29 @@ function SetupLiveEditEnvironment(textarea, lsname)
 			cm.setValue(store);
 	}
 
-	// Create the WebGL context/scene
-	var scene = main(html.Canvas, html.Status);
-	if (scene == null)
-		return;
+	// Oh, GOD... wait for the browser layout engine to complete after dynamic creation
+	// of the sandbox, before creating the WebGL context that resizes itself to fit within
+	window.setTimeout(function(){
 
-	// Perform the first code execution run
-	ExecuteCode(cm, scene, html.Status, lsname);
-	var last_code_hash = HashString(cm.getValue());
+		// Create the WebGL context/scene
+		var scene = main(html.Canvas, html.Status);
+		if (scene == null)
+			return;
 
-	// Check for code changes periodically
-	setInterval(function()
-	{
-		var code_hash = HashString(cm.getValue());
-		if (code_hash != last_code_hash)
+		// Perform the first code execution run
+		ExecuteCode(cm, scene, html.Status, lsname);
+		var last_code_hash = HashString(cm.getValue());
+
+		// Check for code changes periodically
+		setInterval(function()
 		{
-			last_code_hash = code_hash;
-			ExecuteCode(cm, scene, html.Status, lsname);
-		}
-	}, 1000);
+			var code_hash = HashString(cm.getValue());
+			if (code_hash != last_code_hash)
+			{
+				last_code_hash = code_hash;
+				ExecuteCode(cm, scene, html.Status, lsname);
+			}
+		}, 1000);
+
+	}, 1);
 }
