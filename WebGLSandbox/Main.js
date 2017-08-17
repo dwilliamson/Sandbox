@@ -1132,7 +1132,7 @@ SandboxHTML = (function()
 				<canvas height="600" tabindex="1"></canvas>
 				<div class="Buttons">Control Mode
 					<label><input type="radio" name="select3" /><span>Fly</span></label>
-					<label><input type="radio" name="select3" /><span>Rotate</span></label>
+					<label><input type="radio" name="select3" checked="true"/><span>Rotate</span></label>
 				</div>
 				<pre class="Status">Status: OK</pre>
 			</div>
@@ -1142,8 +1142,9 @@ SandboxHTML = (function()
 		`;
 
 		// Set name of the radio button set
-		html = html.replace("select3", lsname + "Radio");
-		html = html.replace("select3", lsname + "Radio");
+		var radio_set = lsname + "Radio";
+		html = html.replace("select3", radio_set);
+		html = html.replace("select3", radio_set);
 		div.innerHTML = html;
 
 		// Swap textarea with created div
@@ -1154,11 +1155,28 @@ SandboxHTML = (function()
 		this.Host = div.children[0];
 		this.Editor = div.children[1];
 		this.Canvas = this.Host.children[0];
+		var buttons = this.Host.children[1];
+		this.FlyButton = buttons.children[0].children[0];
+		this.RotateButton = buttons.children[1].children[0];
 		this.Status = this.Host.children[2];
 
 		// Put textarea in the editor div
 		this.Editor.appendChild(textarea);
 	}
+
+	SandboxHTML.prototype.OnControlModeChange = function(on_change)
+	{
+		// Map button check state to camera type
+		var self = this;
+		var GetCameraType = function()
+		{
+			return self.FlyButton.checked ? CameraType.FLY : CameraType.ROTATE;
+		}
+
+		// Setup events to pass new camera type changes
+		this.FlyButton.onchange = function() { on_change(GetCameraType()); };
+		this.RotateButton.onchange = function() { on_change(GetCameraType()); };
+	}	
 
 	return SandboxHTML;
 })();
@@ -1188,6 +1206,9 @@ function SetupLiveEditEnvironment(textarea, lsname)
 		var scene = main(html.Canvas, html.Status);
 		if (scene == null)
 			return;
+
+		// Change scene camera type on radio button select
+		html.OnControlModeChange(function(camera_type) { scene.CameraType = camera_type; });
 
 		// Perform the first code execution run
 		ExecuteCode(cm, scene, html.Status, lsname);
