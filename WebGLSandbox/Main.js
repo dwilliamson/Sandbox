@@ -1,5 +1,5 @@
-// http://blog.rodneyrehm.de/archives/35-Including-Data-From-Github.html
 
+WebGLSandbox = (function(){
 
 // ====================================================================================== //
 //    JAVASCRIPT UTILITIES
@@ -1227,3 +1227,7 @@ function SetupLiveEditEnvironment(textarea, lsname)
 
 	}, 1);
 }
+
+return SetupLiveEditEnvironment;
+
+})();
