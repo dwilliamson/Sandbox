@@ -1,5 +1,5 @@
 
-.CanvasHost
+.wglsbx-CanvasHost
 {
     /* Make this a positioning parent */
     position:relative;
@@ -16,26 +16,26 @@
 }
 
 
-.Buttons
+.wglsbx-Buttons
 {
     /* Position at top-left of the canvas */
     position: absolute;
     top: 10px;
     left: 10px;
 }
-.Buttons label input
+.wglsbx-Buttons label input
 {
     /* Disable default HTML radio display */
     display: none;
 }
-.Buttons label span
+.wglsbx-Buttons label span
 {
     /* Button style */
     border: 1px solid #ccc;
     border-radius: 3px;
     padding: 3px;
 }
-.Buttons input:checked + span
+.wglsbx-Buttons input:checked + span
 {
     /* Button style when checked */
     color: #000;
@@ -44,7 +44,7 @@
 }
 
 
-.Status
+.wglsbx-Status
 {
     /* Overlay the bottom of the canvas */
     position: absolute;
@@ -53,7 +53,7 @@
 }
 
 
-.CodeEditor
+.wglsbx-CodeEditor
 {
     /* Join with the canvas on the left */
     float: left;

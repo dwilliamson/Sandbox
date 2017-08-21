@@ -1128,16 +1128,16 @@ SandboxHTML = (function()
 		// Create host HTML
 		var div = document.createElement("div");
 		var html = `
-			<div class="CanvasHost">
+			<div class="wglsbx-CanvasHost">
 				<canvas height="600" tabindex="1"></canvas>
-				<div class="Buttons">Control Mode
+				<div class="wglsbx-Buttons">Control Mode
 					<label><input type="radio" name="select3" /><span>Fly</span></label>
 					<label><input type="radio" name="select3" checked="true"/><span>Rotate</span></label>
 				</div>
-				<pre class="Status">Status: OK</pre>
+				<pre class="wglsbx-Status">Status: OK</pre>
 			</div>
 
-			<div class="CodeEditor">
+			<div class="wglsbx-CodeEditor">
 			</div>
 		`;
 
