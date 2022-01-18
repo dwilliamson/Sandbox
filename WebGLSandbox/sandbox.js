@@ -977,6 +977,11 @@ function InitWebGL(canvas, status_bar)
 	{
 		var flags = { antialias: true, stencil: true };
 		gl = canvas.getContext("webgl", flags) || canvas.getContext("experimental-webgl", flags);
+
+		// We want instancing on WebGL 1 for now
+		gl.extANGLEInstancedArrays = gl.getExtension("ANGLE_instanced_arrays");
+		if (!gl.extANGLEInstancedArrays)
+			console.log("WARNING! Instancing not supported");
 	}
 	catch (e)
 	{
@@ -1184,12 +1189,13 @@ FloatingText = (function()
 
 Mesh = (function()
 {
-	function Mesh(gl, draw_type, geometry, program)
+	function Mesh(gl, draw_type, geometry, program, nb_instances)
 	{
 		// Cache for property access
 		this.gl = gl;
 
 		this.DrawType = draw_type;
+		this.NbInstances = nb_instances;
 
 		// Create the data buffers
 		this.IndexType = geometry.IndexType;
@@ -1203,6 +1209,32 @@ Mesh = (function()
 			if (draw_type == DrawType.WIREFRAME_QUADS)
 				wireframe_indices = QuadrifyWireframeIndices(wireframe_indices);
 			this.WireframeIndexBuffer = CreateIndexBuffer(gl, wireframe_indices);
+		}
+
+		if (this.NbInstances > 1)
+		{
+			// Allocate the GPU instance buffer
+			this.ObjectToWorldBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.ObjectToWorldBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, this.NbInstances * 16 * 4, gl.DYNAMIC_DRAW);
+
+			// Setup instancing attributes
+			const a_object_to_world = gl.getAttribLocation(program, 'ObjectToWorld');
+			for (let i = 0; i < 4; i++)
+			{
+				const loc = a_object_to_world + i;
+				gl.enableVertexAttribArray(loc);
+				gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, 16 * 4, i * 4 * 4);
+				gl.extANGLEInstancedArrays.vertexAttribDivisorANGLE(loc, 1);
+			}
+
+			// Allocate the CPU instance buffer with views into each matrix
+			this.ObjectToWorldFloat32Array = new Float32Array(this.NbInstances * 16);
+			this.ObjectToWorldMatrices = [];
+			for (let i = 0; i < this.NbInstances; i++)
+			{
+				this.ObjectToWorldMatrices.push(new Float32Array(this.ObjectToWorldFloat32Array.buffer, i * 16 * 4, 16));
+			}
 		}
 
 		this.Program = program;
@@ -1243,6 +1275,16 @@ Mesh = (function()
 		mat4.identity(this.ObjectToWorld);
 		mat4.translate(this.ObjectToWorld, this.ObjectToWorld, this.Position);
 		mat4.scale(this.ObjectToWorld, this.ObjectToWorld, this.Scale);
+	}
+
+	Mesh.prototype.UpdateInstances = function()
+	{
+		if (this.ObjectToWorldBuffer)
+		{
+			const gl = this.gl;
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.ObjectToWorldBuffer);
+			gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.ObjectToWorldFloat32Array);
+		}
 	}
 
 	return Mesh;
@@ -1374,7 +1416,7 @@ Scene = (function()
 	}
 
 
-	Scene.prototype.AddMesh = function(draw_type, geometry, vshader_source, fshader_source)
+	Scene.prototype.AddMesh = function(draw_type, geometry, vshader_source, fshader_source, nb_instances=1)
 	{
 		var gl = this.gl;
 
@@ -1406,7 +1448,7 @@ Scene = (function()
 		if (!gl.getProgramParameter(program, gl.LINK_STATUS))
 			FatalError("Link Error: " + gl.getProgramInfoLog(program));
 
-		var mesh = new Mesh(gl, draw_type, geometry, program);
+		var mesh = new Mesh(gl, draw_type, geometry, program, nb_instances);
 		this.Meshes.push(mesh);
 		return mesh;
 	}
@@ -1600,15 +1642,17 @@ Scene = (function()
 	{
 		var gl = self.gl;
 
-		// Concatenate camera/mesh matrices
-		var object_to_camera = mat4.create();
-		mat4.mul(object_to_camera, self.WorldToCamera, mesh.ObjectToWorld);
-		var object_to_clip = mat4.create();
-		mat4.mul(object_to_clip, self.CameraToClip, object_to_camera);
+		// Concatenate camera/clip matrices
+		let world_to_clip = mat4.create();
+		mat4.mul(world_to_clip, self.CameraToClip, self.WorldToCamera);
 
 		// Apply program and set shader constants
 		gl.useProgram(mesh.Program);
-		SetShaderUniformMatrix4(gl, mesh.Program, "ObjectToClip", object_to_clip);
+		if (mesh.NbInstances == 1)
+		{
+			SetShaderUniformMatrix4(gl, mesh.Program, "ObjectToWorld", mesh.ObjectToWorld);
+		}
+		SetShaderUniformMatrix4(gl, mesh.Program, "WorldToClip", world_to_clip);
 		SetShaderUniformVector3(gl, mesh.Program, "glColour", colour);
 
 		// Set all mesh uniforms
@@ -1647,7 +1691,10 @@ Scene = (function()
 
 		// Draw the mesh	
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibuffer);
-		gl.drawElements(type, ibuffer.nb_indices, gl.UNSIGNED_SHORT, 0);
+		if (mesh.NbInstances > 1)
+			gl.extANGLEInstancedArrays.drawArraysInstancedANGLE(type, 0, ibuffer.nb_indices, mesh.NbInstances);
+		else
+			gl.drawElements(type, ibuffer.nb_indices, gl.UNSIGNED_SHORT, 0);
 	}
 
 
@@ -1767,14 +1814,15 @@ function main(canvas, status_bar, overlay, orthographic)
 	var vshader = CreateShader(gl, gl.VERTEX_SHADER,`
 		attribute vec3 glVertex;
 
-		uniform mat4 ObjectToClip;
+		uniform mat4 ObjectToWorld;
+		uniform mat4 WorldToClip;
 
 		varying vec3 ls_Position;
 
 		void main(void)
 		{
 			ls_Position = glVertex;
-			gl_Position = ObjectToClip * vec4(glVertex, 1.0);
+			gl_Position = WorldToClip * ObjectToWorld * vec4(glVertex, 1.0);
 		}
 	`);
 
