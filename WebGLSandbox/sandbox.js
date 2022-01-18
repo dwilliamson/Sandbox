@@ -1211,6 +1211,7 @@ Mesh = (function()
 		
 		// Set initial position on the origin
 		this.Position = vec3.create();
+		this.Scale = vec3.create();
 		this.ObjectToWorld = mat4.create();
 		this.SetPosition(0, 0, 0);
 
@@ -1233,6 +1234,15 @@ Mesh = (function()
 		vec3.set(this.Position, x, y, z);
 		mat4.identity(this.ObjectToWorld);
 		mat4.translate(this.ObjectToWorld, this.ObjectToWorld, this.Position);
+	}
+
+	Mesh.prototype.SetPositionScale = function(x, y, z, s)
+	{
+		vec3.set(this.Position, x, y, z);
+		vec3.set(this.Scale, s, s, s);
+		mat4.identity(this.ObjectToWorld);
+		mat4.translate(this.ObjectToWorld, this.ObjectToWorld, this.Position);
+		mat4.scale(this.ObjectToWorld, this.ObjectToWorld, this.Scale);
 	}
 
 	return Mesh;
