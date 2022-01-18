@@ -1783,7 +1783,7 @@ function main(canvas, status_bar, overlay, orthographic)
 
 
 function InitCodeMirror(code_editor, height_matcher)
-{	
+{
 	var cm = CodeMirror.fromTextArea(
 		code_editor,
 		configuration =
@@ -1864,8 +1864,8 @@ SandboxHTML = (function()
 					<div class="wglsbx-Overlay" tabindex="0"></div>
 				</div>
 
-				<div class="wglsbx-CodeEditor">
-				</div>
+				<textarea class="wglsbx-CodeEditor">
+				</textarea>
 			</div>
 		`;
 
