@@ -15,6 +15,21 @@
     font-size: 10pt;
 }
 
+.wglsbx-Overlay
+{
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 5;
+}
+
+.wglsbx-FloatingText
+{
+    position: absolute;
+}
 
 .wglsbx-Buttons
 {
@@ -22,6 +37,10 @@
     position: absolute;
     top: 10px;
     left: 10px;
+    color: #eee;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity .5s ease-out;
 }
 .wglsbx-Buttons label input
 {
@@ -38,24 +57,72 @@
 .wglsbx-Buttons input:checked + span
 {
     /* Button style when checked */
-    color: #000;
-    background: #ccf;
-    border-color: #ccf;
+    color: #222;
+    background: #888;
 }
 
+.wglsbx-Controls
+{
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    color: #eee;
+    opacity: 0;
+    transition: opacity .5s ease-out;
+}
 
 .wglsbx-Status
 {
     /* Overlay the bottom of the canvas */
     position: absolute;
     bottom: 0px;
-    left: 10px;    
+    left: 10px;
+    font-family: monospace;
+    color: #eee;
 }
 
+/* Elements to activate when hovering over the canvas */
+.wglsbx-CanvasHost:hover .wglsbx-Buttons
+{
+    opacity: 1;
+}
+.wglsbx-CanvasHost:hover .wglsbx-Controls
+{
+    opacity: 1;
+}
 
 .wglsbx-CodeEditor
 {
     /* Join with the canvas on the left */
     float: left;
     width: 48%;
+}
+
+/* Overrides for CodeMirror */
+.CodeMirror
+{
+    border: 1px solid #b3b3b3;
+    font-family: Menlo, Monaco, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 18px;
+    padding: 6px;  
+}
+.CodeMirror-scroll {
+  /* Set scrolling behaviour here */
+  overflow: auto;
+  overflow-x: hidden;
+}
+
+/* Overrides for CodeMirror Monokai theme to match blog code highlighting */
+.cm-s-monokai.CodeMirror {
+    background-color: #272822;
+}
+.cm-s-monokai .CodeMirror-gutters {
+    background-color: #272822;
+}
+.cm-s-monokai span.cm-keyword {
+    color: #5cd9ef;
+}
+.cm-s-monokai span.cm-property, .cm-s-monokai span.cm-attribute {
+    color: #a6e22e;
 }
