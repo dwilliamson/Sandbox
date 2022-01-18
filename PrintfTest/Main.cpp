@@ -1257,28 +1257,28 @@ public:
 	}
 
 
-	__int64 Get() const
+	double Get() const
 	{
 		LARGE_INTEGER performance_count;
 		QueryPerformanceCounter(&performance_count);
-		return performance_count.QuadPart;
+		return performance_count.QuadPart * m_PerformanceCounterScale;
 	}
 
 
-	double IntervalAsMs(__int64 start, __int64 end) const
+	double IntervalAsMs(double start, double end) const
 	{
-		return (end - start) * m_PerformanceCounterScale / 1000.0;
+		return (end - start) / 1000.0;
 	}
 
 
-	void Sleep(__int64 microseconds) const
+	void Sleep(double microseconds) const
 	{
-		__int64 start = Get();
+		double start = Get();
 		while (true)
 		{
-			__int64 delta = Get() - start;
+			double delta = Get() - start;
 
-			double time_left = microseconds - delta * m_PerformanceCounterScale;
+			double time_left = microseconds - delta;
 			if (time_left <= 0)
 				break;
 			else if (time_left < 1000)
@@ -1307,11 +1307,23 @@ __declspec(thread) int XX = 0;
 __declspec(thread) int XY = 1;
 
 
+void _ReadWriteBarrier();
+void _WriteBarrier();
+void _ReadBarrier();
+#pragma intrinsic(_ReadWriteBarrier)
+#pragma intrinsic(_WriteBarrier)
+#pragma intrinsic(_ReadBarrier)
+
+
 int main()
 {
 	Timer timer;
 
 	//timeBeginPeriod(1);
+
+	DWORD x = 500000 / 1000000.0;
+
+	_ReadBarrier();
 
 	XX = 3;
 	XX = 4;
@@ -1319,14 +1331,16 @@ int main()
 	while (!_kbhit())
 	{
 		// Random microsecond sleep time
-		__int64 sleep_time = rand()%32000;
+		//__int64 sleep_time = (rand()%32000);
+		double sleep_time = (rand() % 1000);
 
-		__int64 start = timer.Get();
+		double start = timer.Get();
 		//Sleep(1);
-		timer.Sleep(sleep_time);
-		__int64 end = timer.Get();
+		//Sleep(sleep_time);
+		timer.Sleep(sleep_time * 1000);
+		double end = timer.Get();
 
-		__int64 delta = sleep_time - (end - start);
+		double delta = sleep_time * 1000 - (end - start);
 
 		printf("%f\n", timer.IntervalAsMs(0, delta));
 	}
@@ -2048,7 +2062,7 @@ int main()
 	//decltype(a * b) c = a * b;
 }*/
 
-#include <stdio.h>
+/*#include <stdio.h>
 
 
 struct API
@@ -2079,4 +2093,563 @@ int main()
 	API* api = new Impl();
 	api->DoIt();
 	delete api;
+}*/
+
+
+/*#include <vector>
+#include <assert.h>
+
+// Type exposing the API you want to use
+struct Type
+{
+	static const int value1 = 1;
+	void Do(int x)
+	{
+	}
+};
+
+struct FunctionCall
+{
+	virtual void Call() = 0;
+};
+
+// Basic lambda storage
+template <typename Function>
+struct FunctionCallImpl : public FunctionCall
+{
+	FunctionCallImpl(const Function& function)
+		: function(function)
+	{
+	}
+
+	void Call() override
+	{
+		function();
+	}
+
+	Function function;
+};
+
+template <typename Function>
+FunctionCall* MakeFunctionCall(const Function& function)
+{
+	return new FunctionCallImpl<Function>(function);
+}
+
+std::vector<FunctionCall*> Queue;
+
+__declspec(thread) bool CallAllowed = false;
+
+template <typename Type>
+struct Ptr
+{
+	struct X;
+	friend void X::Test();
+protected:
+	Type* operator -> () const
+	{
+		assert(CallAllowed);
+		return ptr;
+	}
+	Type* ptr;
+};
+
+void Test()
+{
+	Ptr<Type> ptr;
+	int value = 2;
+	ptr->Do(value);
+}
+
+
+//#define defer(queue, code) { queue.push_back(MakeFunctionCall([=](){struct X{};code;})); }
+#define defer(code) MakeFunctionCall([=](){CallAllowed=true;code;CallAllowed=false;})
+
+std::vector<FunctionCall*>& operator << (std::vector<FunctionCall*>& queue, FunctionCall* call)
+{
+	queue.push_back(call);
+	return queue;
+}
+
+int main()
+{
+	Ptr<Type> ptr;
+	int value = 2;
+
+	//ptr->Do(value);
+
+	//Queue << defer(ptr->Do(value));
+
+	for (FunctionCall* call : Queue)
+	{
+		call->Call();
+		delete call;
+	}
+
+	//defer(Queue, ptr->Do(value));
+
+	return 0;
+}*/
+
+
+
+/*int main()
+{
+	int x = -2147483648;
+	int y = -1;
+	int z = x / y;
+}*/
+
+
+/*#include <windows.h>
+#include <array>
+#include <stdint.h>
+
+HANDLE main_fiber;
+
+VOID CALLBACK FiberProc(PVOID lpParameter)
+{
+    SwitchToFiber(main_fiber);
+}
+
+void main()
+{
+    const int fibersCount = 100000;
+    size_t fiberStackSize = 16384;
+
+    std::array<LPVOID, fibersCount> fibers;
+
+    MEMORYSTATUSEX memBefore;
+    memBefore.dwLength = sizeof(MEMORYSTATUSEX);
+    GlobalMemoryStatusEx(&memBefore);
+
+    void* x = malloc(1024 * 1024 * 1000);
+
+    main_fiber = ConvertThreadToFiber(0);
+
+    ULONG max = 1024 * 64;
+    SetThreadStackGuarantee(&max);
+
+    for (auto& fiber : fibers)
+    {
+        fiber = CreateFiberEx(fiberStackSize, fiberStackSize, FIBER_FLAG_FLOAT_SWITCH, FiberProc, NULL);
+        //SwitchToFiber(fiber);
+    }
+
+    ConvertFiberToThread();
+
+    MEMORYSTATUSEX memAtfer;
+    memAtfer.dwLength = sizeof(MEMORYSTATUSEX);
+    GlobalMemoryStatusEx(&memAtfer);
+
+    uint64_t estimatedBytes = (uint64_t)(fibers.size() * fiberStackSize);
+    uint64_t fibersMemorySize = (uint64_t)(memBefore.ullAvailVirtual - memAtfer.ullAvailVirtual);
+
+    printf("estimated : %f Mb\nreality : %f Mb\n\n", estimatedBytes / 1024.0 / 1024.0, fibersMemorySize / 1024.0 / 1024.0);
+    printf("estimated : %lld bytes\nreality : %lld bytes\n", (uint64_t)fiberStackSize, (uint64_t)(fibersMemorySize / fibersCount));
+
+    free(x);
+}*/
+
+
+/*#include <Windows.h>
+#include <vector>
+#include <cstdint>
+#include <atomic>
+
+
+#include <functional>
+#include <cstdio>
+
+void test(int x)
+{
+    printf("%d\n", x);
+}
+
+using TaskFn = void(*)();
+
+struct Task
+{
+    static const uint32_t StackSize = 16 * 1024;
+    TaskFn fn;
+    uint8_t stack[StackSize];
+};
+
+// Non-threadsafe task queue
+std::vector<Task> g_Tasks;
+
+__declspec(naked) void* GetEsp()
+{
+    __asm
+    {
+        // Place esp in the ABI-specified function return register
+        mov eax, esp
+
+        // The call to this function pushed a return value on the stack so get rid of that
+        add eax, 4
+
+        // Manual return as this is a naked function
+        ret
+    }
+}
+
+__declspec(naked) void* GetEbp()
+{
+    __asm
+    {
+        // Place esp in the ABI-specified function return register
+        mov eax, ebp
+
+        // The call to this function pushed a return value on the stack so get rid of that
+        add eax, 4
+
+        // Manual return as this is a naked function
+        ret
+    }
+}
+
+void AddTask(TaskFn fn)
+{
+    Task task;
+    task.fn = fn;
+    memcpy(task.stack, (void*)((intptr_t)GetEbp()), Task::StackSize);
+    g_Tasks.push_back(task);
+}
+
+DWORD WINAPI TaskConsumer(LPVOID lpParameter)
+{
+    char consumer_stack[Task::StackSize];
+
+    // One-shot consumption of all tasks, purely for demonstration
+    for (Task task : g_Tasks)
+    {
+        memcpy(consumer_stack, GetEbp(), Task::StackSize);
+        memcpy(GetEbp(), task.stack, Task::StackSize);
+        task.fn();
+        memcpy(GetEbp(), consumer_stack, Task::StackSize);
+    }
+
+    g_Tasks.clear();
+
+    return 0;
+}
+
+DWORD WINAPI TaskConsumerStackAllocator(LPVOID lpParameter)
+{
+    char dummy_space[Task::StackSize];
+    TaskConsumer(lpParameter);
+    return 0;
+}
+
+// Tasks to breakpoint
+void TaskA()
+{
+}
+void TaskB()
+{
+}
+
+void EmbeddedCall()
+{
+    int x = 3;
+
+    // Specify tasks up-front so that we don't have to detail/use a threadsafe queue
+    AddTask(TaskA);
+    AddTask(TaskB);
+}
+
+void OuterCall()
+{
+    int x = 3;
+
+    EmbeddedCall();
+}
+
+void MewCall()
+{
+    OuterCall();
+}
+
+#include <time.h>
+
+extern "C" void do_foo(int N);
+
+int main()
+{
+	do_foo(1024);
+
+	auto t0 = time(nullptr);
+	auto t1 = _time64(nullptr);
+	auto t2 = _gmtime64(&t1);
+
+    auto y = std::bind(test, 3);
+    y();
+
+    char dummy_space[Task::StackSize - 1024];
+
+    MewCall();
+
+    // Create a thread to execute all tasks
+    HANDLE thread = CreateThread(nullptr, 0, TaskConsumerStackAllocator, nullptr, 0, nullptr);
+
+    // Join scheduler thread
+    WaitForSingleObject(thread, INFINITE);
+
+    return 0;
+}*/
+
+
+/*#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#include <Windows.h>
+
+
+int PrintNumbers(int a, int b)
+{
+    printf("%d %d\n", a, b);
+    return a + b;
+}
+
+
+__declspec(naked) static void Callback()
+{
+    __asm
+    {
+        // EIP dest
+        sub esp, 4
+        mov [esp], 0x12345678
+
+        // Preserve register state when suspended
+        pushad
+
+        // Stack frame without push ebp as pushad achieves that
+        mov ebp, esp
+        sub ebp, 8
+    }
+
+    {
+        int result;
+        __asm
+        {
+            call rand
+            mov [ebp - 0], eax
+
+            push 5
+            push 7
+            call PrintNumbers
+            mov [ebp - 8], eax
+            add esp, 8
+        }
+
+        //t result;
+        //sult = rand();
+
+        printf("%d\n", result);
+    }
+
+    __asm
+    {
+        popad
+
+        add esp, 4
+
+        ret
+    }
+}
+
+#include <stringapiset.h>
+#include <windows.h>
+
+int main()
+{
+    int size = WideCharToMultiByte(CP_ACP, 0, thread_name, 0, NULL, 0);
+
+    __asm
+    {
+        call Callback
+    }
+
+    PrintNumbers(1, 2);
+}
+
+#include <TlHelp32.h>
+
+
+BOOL MatchAddressToModule(DWORD dwProcId, LPTSTR lpstrModule, DWORD dwThreadStartAddr, PDWORD pModuleStartAddr)
+{
+    BOOL bRet = FALSE;
+    HANDLE hSnapshot;
+    MODULEENTRY32 moduleEntry32;
+
+    hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPALL, dwProcId);
+
+    moduleEntry32.dwSize = sizeof(MODULEENTRY32);
+    moduleEntry32.th32ModuleID = 1;
+
+    if(Module32First(hSnapshot, &moduleEntry32)){
+        if(dwThreadStartAddr >= (DWORD)moduleEntry32.modBaseAddr && dwThreadStartAddr <= ((DWORD)moduleEntry32.modBaseAddr + moduleEntry32.modBaseSize)){
+            _tcscpy(lpstrModule, moduleEntry32.szExePath);
+        }else{
+            while(Module32Next(hSnapshot, &moduleEntry32)){
+                if(dwThreadStartAddr >= (DWORD)moduleEntry32.modBaseAddr && dwThreadStartAddr <= ((DWORD)moduleEntry32.modBaseAddr + moduleEntry32.modBaseSize)){
+                    _tcscpy(lpstrModule, moduleEntry32.szExePath);
+                    break;
+                }
+            }
+        }
+    }
+
+    if(pModuleStartAddr) *pModuleStartAddr = (DWORD)moduleEntry32.modBaseAddr;
+    CloseHandle(hSnapshot);
+
+    return bRet;
+}
+
+#define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
+#define ThreadQuerySetWin32StartAddress 9
+typedef NTSTATUS (WINAPI *NTQUERYINFOMATIONTHREAD)(HANDLE, LONG, PVOID, ULONG, PULONG);
+
+DWORD WINAPI GetThreadStartAddress(__in HANDLE hThread)
+{
+    NTSTATUS ntStatus;
+    DWORD dwThreadStartAddr = 0;
+    HANDLE hPeusdoCurrentProcess, hNewThreadHandle;
+    NTQUERYINFOMATIONTHREAD NtQueryInformationThread;
+
+    if((NtQueryInformationThread = (NTQUERYINFOMATIONTHREAD)GetProcAddress(GetModuleHandle(_T("ntdll.dll")), _T("NtQueryInformationThread")))){
+        hPeusdoCurrentProcess = GetCurrentProcess();
+        if(DuplicateHandle(hPeusdoCurrentProcess, hThread, hPeusdoCurrentProcess, &hNewThreadHandle, THREAD_QUERY_INFORMATION, FALSE, 0)){
+            ntStatus = NtQueryInformationThread(hNewThreadHandle, ThreadQuerySetWin32StartAddress, &dwThreadStartAddr, sizeof(DWORD), NULL);
+            CloseHandle(hNewThreadHandle);
+            if(ntStatus != STATUS_SUCCESS) return 0;
+        }
+
+    }
+
+    return dwThreadStartAddr;
+}
+*/
+
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+
+// Rotate left - some compilers can optimise this to a single rotate!
+unsigned int rotl(unsigned int v, unsigned int bits)
+{
+	return (v << bits) | (v >> (32 - bits));
+}
+
+unsigned int fmix(unsigned int h)
+{
+	// Finalisation mix - force all bits of a hash block to avalanche
+	h ^= h >> 16;
+	h *= 0x85ebca6b;
+	h ^= h >> 13;
+	h *= 0xc2b2ae35;
+	h ^= h >> 16;
+	return h;
+}
+
+//
+// Austin Appleby's MurmurHash 3: http://code.google.com/p/smhasher
+//
+unsigned int MurmurHash3(const void* key, int len, unsigned int seed)
+{
+	const unsigned char* data = (const unsigned char*)key;
+	int nb_blocks = len / 4;
+
+	unsigned int h1 = seed;
+	unsigned int c1 = 0xcc9e2d51;
+	unsigned int c2 = 0x1b873593;
+
+	// Body
+	const unsigned int* blocks = (const unsigned int*)(data + nb_blocks * 4);
+	for (int i = -nb_blocks; i; i++)
+	{	
+		unsigned int k1 = blocks[i];
+
+		k1 *= c1;
+		k1 = rotl(k1, 15);
+		k1 *= c2;
+
+		h1 ^= k1;
+		h1 = rotl(h1, 13);
+		h1 = h1 * 5 + 0xe6546b64;
+	}
+
+	// Tail
+	const unsigned char* tail = (const unsigned char*)(data + nb_blocks * 4);
+	unsigned int k1 = 0;
+	switch (len & 3)
+	{
+	case (3):
+		k1 ^= tail[2] << 16;
+	case (2):
+		k1 ^= tail[1] << 8;
+	case (1):
+		k1 ^= tail[0];
+		k1 *= c1;
+		k1 = rotl(k1, 15);
+		k1 *= c2;
+		h1 ^= k1;
+	}
+
+	// Finalisation
+	h1 ^= len;
+	h1 = fmix(h1);
+	return h1;
+}
+
+uint32_t HashString(const char* string)
+{
+	return MurmurHash3(string, strlen(string), 0);
+}
+
+#include <Windows.h>
+#include <strsafe.h>
+#include <tchar.h>
+
+BOOL GetLastWriteTime(HANDLE hFile, LPTSTR lpszString, DWORD dwSize)
+{
+	FILETIME ftCreate, ftAccess, ftWrite;
+	SYSTEMTIME stUTC, stLocal;
+	DWORD dwRet;
+
+	// Retrieve the file times for the file.
+	if (!GetFileTime(hFile, &ftCreate, &ftAccess, &ftWrite))
+		return FALSE;
+
+	// Convert the last-write time to local time.
+	FileTimeToSystemTime(&ftAccess, &stUTC);
+	SystemTimeToTzSpecificLocalTime(NULL, &stUTC, &stLocal);
+
+	// Build a string showing the date and time.
+	dwRet = StringCchPrintf(lpszString, dwSize, 
+		TEXT("%02d/%02d/%d  %02d:%02d"),
+		stLocal.wMonth, stLocal.wDay, stLocal.wYear,
+		stLocal.wHour, stLocal.wMinute);
+
+	if( S_OK == dwRet )
+		return TRUE;
+	else return FALSE;
+}
+
+
+int main()
+{
+	// 4141004424
+	//    1388546915
+	//    427950853
+	printf("%u\n", HashString("UpdateBuild"));			// 4141004424
+	printf("%u\n", HashString("ConsumeMessage"));		// 2062112170
+
+	HANDLE hFile = CreateFile("d:\\dev\\HelloGames\\Patches\\CameraReprojectionFix.patch", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+
+	TCHAR szBuf[MAX_PATH];
+	GetLastWriteTime(hFile, szBuf, MAX_PATH);
+	_tprintf(TEXT("Last access time is: %s\n"), szBuf);
+
+	CloseHandle(hFile);
 }
