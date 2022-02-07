@@ -1202,8 +1202,9 @@ FloatingText = (function()
 		this.div = document.createElement("div");
 		this.div.className = "wglsbx-FloatingText";
 		var html = katex.renderToString(text, { throwOnError: false });
-		this.div.innerHTML = "<span style='font-size:20px'>" + html + "</span>";
-		parent.appendChild(this.div);
+		this.div.innerHTML = "<span style='font-size:12px'>" + html + "</span>";
+		this.parent = parent;
+		this.parent.appendChild(this.div);
 
 		// Copy position to vec4 ready for perspective transform
 		this.Position = vec4.create();
