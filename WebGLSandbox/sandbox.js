@@ -1431,6 +1431,21 @@ Scene = (function()
 	}
 
 
+	Scene.prototype.ClearContents = function()
+	{
+		this.Meshes = [];
+
+		for (text of this.FloatingTexts)
+		{
+			text.parent.removeChild(text.div);
+		}
+
+		this.FloatingTexts = [];
+
+		this.ShaderLinkDatabase = [];
+	}
+
+
 	Scene.prototype.UpdateMatrices = function()
 	{
 		this.CameraTransform.UpdateMatrices();
@@ -1920,7 +1935,7 @@ function InitCodeMirror(code_editor, height_matcher)
 function ExecuteCode(cm, scene, status_bar, lsname)
 {
 	var old_scene_meshes = scene.Meshes;
-	scene.Meshes = [ ];
+	scene.ClearContents();
 
 	// Inject scene object into evaluated code
 	var vars = { "scene" : scene };
