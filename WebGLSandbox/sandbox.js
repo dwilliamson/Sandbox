@@ -1,4 +1,10 @@
 
+vec2 = glMatrix.vec2;
+vec3 = glMatrix.vec3;
+vec4 = glMatrix.vec4;
+mat3 = glMatrix.mat3;
+mat4 = glMatrix.mat4;
+
 WebGLSandbox = (function(){
 
 // ====================================================================================== //
