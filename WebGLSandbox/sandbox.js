@@ -1689,16 +1689,20 @@ Scene = (function()
 		{
 			var text = this.FloatingTexts[i];
 
-			// If the text has a normal, use that to backface cull
-			if (text.Normal)
-			{
-				vec3.transformMat3(normal, text.Normal, world_to_camera_rotation);
-				var visible = normal[2] > 0;
-				text.div.style.display = visible ? "" : "none";
-			}
-
 			vec4.transformMat4(position, text.Position, world_to_clip);
 
+			// Near/far plane test
+			let visible = position[3] > -position[3] && position[2] < position[3];
+
+			// If the text has a normal, use that to backface cull
+			if (visible && text.Normal)
+			{
+				vec3.transformMat3(normal, text.Normal, world_to_camera_rotation);
+				visible = normal[2] > 0;
+			}
+
+			text.div.style.display = visible ? "" : "none";
+			
 			position[0] /= position[3];
 			position[1] /= position[3];
 
