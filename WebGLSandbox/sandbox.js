@@ -1031,6 +1031,7 @@ Input = (function()
 	function Input(container)
 	{
 		// Initialise default state
+		this.Container = container;
 		this.KeyState = [ ];
 		this.MouseDelta = [ 0, 0 ];
 		this.LastMouseDragPos = null;
@@ -1059,6 +1060,21 @@ Input = (function()
 		self.KeyState[ev.keyCode] = false;
 	}
 
+	function NodeIsPartOfContainer(node)
+	{
+		while (node != document)
+		{
+			if (node == self.Container)
+			{
+				return true;
+			}
+
+			node = node.parent;
+		}
+
+		return false;
+	}
+
 	// Handle mouse presses
 	function OnMouseDown(self, ev)
 	{
@@ -1072,8 +1088,16 @@ Input = (function()
 	}
 	function OnMouseOut(self, ev)
 	{
-		self.KeyState[Keys.MB] = false;
-		self.LastMouseDragPos = null;
+		if (self.LastMouseDragPos)
+		{
+			// mouseout is triggered when the mouse goes over floating text, or any other DOM element that has been rendered to
+			// the canvas/container. Make sure movement over any of these doesn't cancel drag movement.
+			if (!NodeIsPartOfContainer(ev.target))
+			{
+				self.KeyState[Keys.MB] = false;
+				self.LastMouseDragPos = null;
+			}
+		}
 	}
 
 	// Handle mouse move dragging
