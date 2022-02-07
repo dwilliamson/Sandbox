@@ -177,6 +177,13 @@ function PointOnPlane(plane)
 }
 
 
+function CreateTriangleGeometry(positions)
+{
+	const indices = [0, 1, 2];
+	return new Geometry(IndexType.TRIANGLE_LIST, positions, indices);
+}
+
+
 function CreatePlaneGeometry(plane, scale, nb_vertices_x)
 {
 	var positions = new Array();
@@ -1613,6 +1620,13 @@ Scene = (function()
 			ClipToY(complete_height, a, b);
 			this.AddLineMesh(b, a, 0.001, [ 1.0, 1.0, 1.0 ]);
 		}
+	}
+
+
+	Scene.prototype.AddTriangle = function(positions)
+	{
+		var geom = CreateTriangleGeometry(positions);
+		return this.AddMesh(DrawType.WIREFRAME_TRIS, geom);
 	}
 
 
