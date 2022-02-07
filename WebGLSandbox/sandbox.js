@@ -1422,6 +1422,8 @@ Scene = (function()
 		this.CameraTransform = this.RotateCameraTransform;
 		this.CameraType = CameraType.ROTATE;
 
+		this.ShaderLinkDatabase = [];
+
 		this.UpdateMatrices();
 	}
 
@@ -1475,15 +1477,23 @@ Scene = (function()
 				fshader = custom_fshader;
 		}
 
-		// Create the shader program
-		var program = gl.createProgram();
-		gl.attachShader(program, fshader);
-		gl.attachShader(program, vshader);
-		gl.linkProgram(program);
+		// Check the link database first
+		const link_key = [vshader, fshader];
+		let program = this.ShaderLinkDatabase[link_key];
+		if (program === undefined)
+		{
+			// Create the shader program
+			program = gl.createProgram();
+			gl.attachShader(program, fshader);
+			gl.attachShader(program, vshader);
+			gl.linkProgram(program);
 
-		// Return on any errors
-		if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-			FatalError("Link Error: " + gl.getProgramInfoLog(program));
+			// Return on any errors
+			if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+				FatalError("Link Error: " + gl.getProgramInfoLog(program));
+			
+			this.ShaderLinkDatabase[link_key] = program;
+		}
 
 		var mesh = new Mesh(gl, draw_type, geometry, program, nb_instances);
 		this.Meshes.push(mesh);
