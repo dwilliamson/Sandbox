@@ -29,6 +29,7 @@
 .wglsbx-FloatingText
 {
     position: absolute;
+    user-select: none;
 }
 
 .wglsbx-Buttons
@@ -41,6 +42,7 @@
     z-index: 10;
     opacity: 0;
     transition: opacity .5s ease-out;
+    user-select: none;
 }
 .wglsbx-Buttons label input
 {
