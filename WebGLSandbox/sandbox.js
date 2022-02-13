@@ -1919,7 +1919,7 @@ function main(canvas, status_bar, overlay, orthographic)
 
 function InitCodeMirror(code_editor, height_matcher)
 {
-	var cm = CodeMirror.fromTextArea(
+	const codemirror = CodeMirror.fromTextArea(
 		code_editor,
 		configuration =
 		{
@@ -1937,7 +1937,7 @@ function InitCodeMirror(code_editor, height_matcher)
 }
 
 
-function ExecuteCode(cm, scene, status_bar, lsname)
+function ExecuteCode(codemirror, scene, status_bar, lsname)
 {
 	var old_scene_meshes = scene.Meshes;
 	scene.ClearContents();
@@ -1946,7 +1946,7 @@ function ExecuteCode(cm, scene, status_bar, lsname)
 	var vars = { "scene" : scene };
 
 	// Continuously save user's code
-	var user_code = cm.getValue();
+	var user_code = codemirror.getValue();
 	if (typeof(localStorage) !== "undefined")
 		localStorage[lsname + "_Code"] = user_code;
 
@@ -2053,24 +2053,24 @@ function SetupLiveEditEnvironment(textarea, lsname, loadls, hidecode, orthograph
 
 	// Start the code editor first to give the user something to look at in case scene
 	// creation fails
-	var cm = InitCodeMirror(html.Editor, html.Host);
+	var codemirror = InitCodeMirror(html.Editor, html.Host);
 
 	// Load existing code from user's local store
 	if (loadls && typeof(Storage) !== "undefined")
 	{
 		var store = localStorage[lsname + "_Code"];
 		if (store)
-			cm.setValue(store);
+		codemirror.setValue(store);
 	}
 	else
 	{
-		cm.setValue(textarea.value);
+		codemirror.setValue(textarea.value);
 	}
 
 	if (hidecode)
 	{
 		// Remove editor from layout and center the canvas
-		cm.getWrapperElement().style.display = "none";
+		codemirror.getWrapperElement().style.display = "none";
 		html.Host.style.float = "none";
 		html.Host.style.margin = "0 auto";
 
@@ -2095,17 +2095,26 @@ function SetupLiveEditEnvironment(textarea, lsname, loadls, hidecode, orthograph
 		});
 
 		// Perform the first code execution run
-		ExecuteCode(cm, scene, html.Status, lsname);
-		var last_code_hash = HashString(cm.getValue());
+		ExecuteCode(codemirror, scene, html.Status, lsname);
+		var last_code_hash = HashString(codemirror.getValue());
 
 		// Check for code changes periodically
+		var changes_started = false;
 		setInterval(function()
 		{
-			var code_hash = HashString(cm.getValue());
+			var code_hash = HashString(codemirror.getValue());
+
+			// Only compile code changes once typing has stopped, avoiding stalls when compiling large bits of code
+			// It also has the benefit of not trying to compile when you're part-way through adding new code
 			if (code_hash != last_code_hash)
 			{
 				last_code_hash = code_hash;
-				ExecuteCode(cm, scene, html.Status, lsname);
+				changes_started = true;
+			}
+			else if (changes_started)
+			{
+				changes_started = false;
+				ExecuteCode(codemirror, scene, html.Status, lsname);
 			}
 		}, 1000);
 
