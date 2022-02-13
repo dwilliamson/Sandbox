@@ -93,17 +93,60 @@
     opacity: 1;
 }
 
-.wglsbx-CodeEditor
+.wglsbx-Tabs
 {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+
+    /* Overlap the code editor container by a pixel so that we can colour the bottom border like its background */
+    margin-bottom: -1px;
+}
+
+.wglsbx-Tab
+{
+    padding: 5px 10px;
+    background: #666;
+    border: 1px solid #b3b3b3;
+    width: fit-content;
+    display: inline-block;
+
+    /* Font styling */
+    color: #ccc;
+    font-family: Arial;
+    font-size: 10pt;
+
+    /* Tab text can't be selected, to encourage clicking */
+    cursor: default;
+    user-select: none;
+}
+
+.wglsbx-ActiveTab
+{
+    color: #eee;
+    background: #272822;
+    border-bottom-color: #272822 !important;
+}
+
+.wglsbx-CodeEditorPane
+{
+    border: 1px solid #b3b3b3;
+
     /* Join with the canvas on the left */
     float: left;
     width: 48%;
+
+    display: none;
+}
+
+.wglsbx-ActiveCodeEditorPane
+{
+    display: block;
 }
 
 /* Overrides for CodeMirror */
 .CodeMirror
 {
-    border: 1px solid #b3b3b3;
     font-family: Menlo, Monaco, "Courier New", monospace;
     font-size: 12px;
     line-height: 18px;

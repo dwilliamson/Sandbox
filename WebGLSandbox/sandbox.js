@@ -1917,10 +1917,13 @@ function main(canvas, status_bar, overlay, orthographic)
 }
 
 
-function InitCodeMirror(code_editor, height_matcher)
+const g_CodeMirrors = [];
+
+
+function AddCodeMirror(code_text_area, height_matcher)
 {
 	const codemirror = CodeMirror.fromTextArea(
-		code_editor,
+		code_text_area,
 		configuration =
 		{
 			theme: "monokai",
@@ -1932,24 +1935,31 @@ function InitCodeMirror(code_editor, height_matcher)
 			gutter: false,
 		});
 
-	cm.setSize(null, height_matcher.offsetHeight);
-	return cm;
+	codemirror.setSize(null, height_matcher.offsetHeight);
+
+	g_CodeMirrors.push(codemirror);
+
+	return codemirror;
+}
+
+function InitCodeMirrors(code_text_areas, height_matcher)
+{
+	// Create one instance for each text area
+	for (let code_text_area of code_text_areas)
+	{
+		AddCodeMirror(code_text_area, height_matcher);
+	}
 }
 
 
-function ExecuteCode(codemirror, scene, status_bar, lsname)
+function ExecuteCode(user_code, scene, status_bar)
 {
 	var old_scene_meshes = scene.Meshes;
 	scene.ClearContents();
 
 	// Inject scene object into evaluated code
 	var vars = { "scene" : scene };
-
-	// Continuously save user's code
-	var user_code = codemirror.getValue();
-	if (typeof(localStorage) !== "undefined")
-		localStorage[lsname + "_Code"] = user_code;
-
+	
 	// Split the user code into any specified buffers
 	var buffer_re = /\/\/@buffer\(([^\)]*)\)/;
 	user_code = user_code.split(buffer_re);
@@ -1980,7 +1990,7 @@ function ExecuteCode(codemirror, scene, status_bar, lsname)
 
 SandboxHTML = (function()
 {
-	function SandboxHTML(textarea, lsname)
+	function SandboxHTML(textarea, lsname, loadls)
 	{
 		this.Name = lsname;
 		
@@ -1999,8 +2009,12 @@ SandboxHTML = (function()
 					<div class="wglsbx-Overlay" tabindex="0"></div>
 				</div>
 
-				<textarea class="wglsbx-CodeEditor">
-				</textarea>
+				<ul class="wglsbx-Tabs">
+					<!--
+					<li class="wglsbx-Tab wglsbx-ActiveTab" data-tab="0">One</li>
+					<li class="wglsbx-Tab" data-tab="1">+</li>
+					-->
+				</ul>
 			</div>
 		`;
 
@@ -2015,7 +2029,8 @@ SandboxHTML = (function()
 		textarea.parentNode.removeChild(textarea);
 
 		// Record for future use
-		var root = div.children[0];
+		const root = div.children[0];
+		this.Root = root;
 		this.Host = root.children[0];
 		this.Canvas = this.Host.children[0];
 		var buttons = this.Host.children[1];
@@ -2023,10 +2038,146 @@ SandboxHTML = (function()
 		this.RotateButton = buttons.children[1].children[0];
 		this.Status = this.Host.children[2];
 		this.Overlay = this.Host.children[4];
-		this.Editor = root.children[1];
+		this.Tabs = root.children[1];
+		
+		this.CodeTextAreas = [];
 
-		// Put textarea in the editor div
-		this.Editor.appendChild(textarea);
+		if (loadls && typeof(Storage) != "undefined")
+		{
+			const nb_tabs = localStorage[lsname + "_NbTabs"];
+			if (nb_tabs)
+			{
+				const active_tab_index = localStorage[lsname + "_ActiveTabIndex"] || 0;
+
+				// Tabs are cached in LS so create them all
+				for (let i = 0; i < nb_tabs; i++)
+				{
+					this.AddTab(active_tab_index == i, "Tab" + i);
+				}
+
+				// Now add the panes from LS
+				for (let i = 0; i < nb_tabs; i++)
+				{
+					const code = localStorage[lsname + "_Code" + i] || "";
+					this.AddPane(active_tab_index == i, code);
+				}
+			}
+			else
+			{
+				// This is the old LS format that didn't have tabs - make a default set
+				this.AddTab(true, "NoName");
+
+				// As this is the old LS format, key LS with the old code name and add a pane for it
+				const code = localStorage[lsname + "_Code"] || "";
+				this.AddPane(true, code);
+			}
+		}
+		else
+		{
+			// Localstore not requested so tabs will not be preserved - make a default set
+			this.AddTab(true, "NoName");
+
+			// Add a pane to display the text embedded in the host HTML
+			this.AddPane(true, textarea.value);
+		}
+
+		// Create the Add tab
+		this.AddTab(false, "+");
+
+		this.Tabs.addEventListener("click", (ev) => {
+			// Add new tabs on-demand
+			if (ev.target.innerHTML == "+")
+			{
+				const tab = this.AddTab(false, "NoName");
+				const textarea = this.AddPane(false, "");
+				AddCodeMirror(textarea, this.Host);
+				this.SelectTab(tab);
+			}
+			else
+			{
+				this.SelectTab(ev.target);
+			}
+		});
+	}
+
+	SandboxHTML.prototype.SelectTab = function(tab_node)
+	{
+		// Search for the index of the selected tab
+		let active_node_index = 0;
+		for (let node of this.Tabs.children)
+		{
+			if (node == tab_node)
+			{
+				break;
+			}
+			active_node_index++;
+		}
+
+		for (let i = 0; i < this.Tabs.children.length; i++)
+		{
+			const active = i == active_node_index;
+			const node = this.Tabs.children[i];
+			node.className = "wglsbx-Tab " + (active ? "wglsbx-ActiveTab" : "");
+
+			if (i < this.CodeTextAreas.length)
+			{
+				const textarea = this.CodeTextAreas[i];
+				const pane = textarea.parentNode;
+				pane.className = "wglsbx-CodeEditorPane " + (active ? "wglsbx-ActiveCodeEditorPane" : "");
+
+				if (active)
+				{
+					g_CodeMirrors[i].refresh();
+				}
+			}
+		}
+	}
+
+	SandboxHTML.prototype.AddTab = function(active, name)
+	{
+		// Create active/inactive tab element
+		const li = document.createElement("li");
+		li.className = "wglsbx-Tab " + (active ? "wglsbx-ActiveTab" : "");
+		li.innerHTML = name;
+
+		// Don't want double borders between tabs
+		if (this.Tabs.children.length > 0)
+		{
+			li.style.borderLeft = "0px";
+		}
+
+		// Insert the tab before the Add tab
+		let before_node = null;
+		for (let node of this.Tabs.children)
+		{
+			if (node.innerHTML == "+")
+			{
+				before_node = node;
+				break;
+			}
+		}
+		this.Tabs.insertBefore(li, before_node);
+
+		return li;
+	}
+
+	SandboxHTML.prototype.AddPane = function(active, text)
+	{
+		// Create active/inactive pane elemtn
+		const div = document.createElement("div");
+		div.className = "wglsbx-CodeEditorPane " + (active ? "wglsbx-ActiveCodeEditorPane" : "");
+
+		// Add a textarea with the text for CodeMirror to edit
+		const textarea = document.createElement("textarea");
+		textarea.innerHTML = text;
+		div.appendChild(textarea);
+
+		this.Root.appendChild(div);
+
+		// Keep track of all the text areas for reading code
+		this.CodeTextAreas.push(textarea);
+
+		return textarea;
 	}
 
 	SandboxHTML.prototype.OnControlModeChange = function(on_change)
@@ -2046,31 +2197,96 @@ SandboxHTML = (function()
 	return SandboxHTML;
 })();
 
+function ComposeCodeFromAllTabs(codemirrors)
+{
+	// Concatenate all code, separating by a newline in case the user doesn't
+	let code = "";
+	for (let codemirror of codemirrors)
+	{
+		code += codemirror.getValue();
+		code += "\n";
+	}
+
+	return code;
+}
+
+function SaveCode(html, lsname, codemirrors)
+{
+	if (typeof(localStorage) !== "undefined")
+	{
+		// Search for the active tab
+		let active_tab_index = 0;
+		for (let tab of html.Tabs.children)
+		{
+			if (tab.className.includes("Active"))
+			{
+				break;
+			}
+			active_tab_index++;
+		}
+
+		// Save tab info
+		localStorage[lsname + "_NbTabs"] = codemirrors.length;
+		localStorage[lsname + "_ActiveTabIndex"] = active_tab_index;
+
+		// Save all the code
+		for (let i = 0; i < codemirrors.length; i++)
+		{
+			const codemirror = codemirrors[i];
+			const code = codemirror.getValue();
+			localStorage[lsname + "_Code" + i] = code;
+		}
+	}
+}
+
+function UpdateTabNames(html, codemirrors)
+{
+	for (let i = 0; i < codemirrors.length; i++)
+	{
+		const codemirror = codemirrors[i];
+		const code = codemirror.getValue();
+
+		// Parse tab name in the code itself
+		if (code.startsWith("// tab-name "))
+		{
+			const line = code.split("\n", 1)[0];
+			const tab_name = line.substr(12);
+
+			// Search for the owning tab index
+			const textarea = codemirror.getTextArea();
+			let tab_index = 0;
+			for (let code_textarea of html.CodeTextAreas)
+			{
+				if (textarea == code_textarea)
+				{
+					break;
+				}
+				tab_index++;
+			}
+
+			// Set the name
+			html.Tabs.children[tab_index].innerHTML = tab_name;
+		}
+	}
+}
 
 function SetupLiveEditEnvironment(textarea, lsname, loadls, hidecode, orthographic)
 {
-	var html = new SandboxHTML(textarea, lsname);
+	var html = new SandboxHTML(textarea, lsname, loadls);
 
 	// Start the code editor first to give the user something to look at in case scene
 	// creation fails
-	var codemirror = InitCodeMirror(html.Editor, html.Host);
-
-	// Load existing code from user's local store
-	if (loadls && typeof(Storage) !== "undefined")
-	{
-		var store = localStorage[lsname + "_Code"];
-		if (store)
-		codemirror.setValue(store);
-	}
-	else
-	{
-		codemirror.setValue(textarea.value);
-	}
+	InitCodeMirrors(html.CodeTextAreas, html.Host);
 
 	if (hidecode)
 	{
-		// Remove editor from layout and center the canvas
-		codemirror.getWrapperElement().style.display = "none";
+		// Remove editor from layout
+		for (let codemirror of g_CodeMirrors)
+		{
+			codemirror.getWrapperElement().style.display = "none";
+		}
+
+		// Center the canvas
 		html.Host.style.float = "none";
 		html.Host.style.margin = "0 auto";
 
@@ -2095,14 +2311,17 @@ function SetupLiveEditEnvironment(textarea, lsname, loadls, hidecode, orthograph
 		});
 
 		// Perform the first code execution run
-		ExecuteCode(codemirror, scene, html.Status, lsname);
-		var last_code_hash = HashString(codemirror.getValue());
+		const code = ComposeCodeFromAllTabs(g_CodeMirrors);
+		ExecuteCode(code, scene, html.Status);
+		UpdateTabNames(html, g_CodeMirrors);
+		let last_code_hash = HashString(code);
 
 		// Check for code changes periodically
-		var changes_started = false;
+		let changes_started = false;
 		setInterval(function()
 		{
-			var code_hash = HashString(codemirror.getValue());
+			const code = ComposeCodeFromAllTabs(g_CodeMirrors);
+			const code_hash = HashString(code);
 
 			// Only compile code changes once typing has stopped, avoiding stalls when compiling large bits of code
 			// It also has the benefit of not trying to compile when you're part-way through adding new code
@@ -2114,7 +2333,9 @@ function SetupLiveEditEnvironment(textarea, lsname, loadls, hidecode, orthograph
 			else if (changes_started)
 			{
 				changes_started = false;
-				ExecuteCode(codemirror, scene, html.Status, lsname);
+				ExecuteCode(code, scene, html.Status);
+				SaveCode(html, lsname, g_CodeMirrors);
+				UpdateTabNames(html, g_CodeMirrors);
 			}
 		}, 1000);
 
